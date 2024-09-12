@@ -12,49 +12,58 @@
 
 
 import { LogLevel } from '@sentio/sdk'
-import { FuelNetwork } from '@sentio/sdk/fuel'
+import { FuelNetwork, FuelProcessor } from '@sentio/sdk/fuel'
 import { AmmProcessor } from './types/fuel/AmmProcessor.js'
+import { AssetIdInput } from './types/fuel/Amm.js';
 
 const contractAddress = '0xd5a716d967a9137222219657d7877bd8c79c64e1edb5de9f2901c98ebe74da80';
 
-AmmProcessor.bind({
+type PoolId = [AssetIdInput, AssetIdInput, boolean];
+
+const poolIdToStr = (poolId: PoolId) => `${poolId[0]}-${poolId[1]}-${poolId[2]}`;
+
+const processor = AmmProcessor.bind({
   address: contractAddress,
   chainId: FuelNetwork.TEST_NET
-}).onLogCreatePoolEvent(async (event, ctx) => {
-  console.log(event);
+});
+
+processor.onLogCreatePoolEvent(async (event, ctx) => {
   ctx.meter.Counter('pools').add(1);
   ctx.eventLogger.emit("PairCreated", {
+    poolId: poolIdToStr(event.data.pool_id),
     token0: event.data.pool_id[0],
-    token1: event.data.pool_id[0],
+    token1: event.data.pool_id[1],
     stable: event.data.pool_id[2],
   });
 });
 
-// // import { CounterContractProcessor } from './types/fuel/CounterContractProcessor.js'
+processor.onLogSwapEvent(async (event, ctx) => {
+  ctx.eventLogger.emit("Swap", {
+    poolId: poolIdToStr(event.data.pool_id),
+    token0In: event.data.asset_0_in,
+    token1In: event.data.asset_1_in,
+    token0Out: event.data.asset_0_out,
+    token1Out: event.data.asset_1_out,
+    recipient: event.data.recipient,
+  });
+});
 
-// CounterContractProcessor.bind({
-//       address: '0xa14f85860d6ce99154ecbb13570ba5fba1d8dc16b290de13f036b016fd19a29c',
-//       chainId: FuelNetwork.TEST_NET
-//     })
-//     .onTransaction(
-//         async (tx, ctx) => {
-//           ctx.eventLogger.emit('transaction', {
-//             distinctId: tx.id,
-//             message: 'Transaction processed',
-//             properties: {
-//               fee: tx.fee.toNumber()
-//             },
-//             severity: tx.status === 'success' ? LogLevel.INFO : LogLevel.ERROR
-//           })
-//         },
-//         { includeFailed: true }
-//     )
-//     .onLogFoo(async (log, ctx) => {
-//       ctx.meter.Counter('fooLogged').add(1, { baz: String(log.data.baz) })
-//     })
-//     .onTimeInterval(async (block, ctx) => {
-//       ctx.eventLogger.emit('block', {
-//         ...block,
-//       })
-//       ctx.meter.Counter('interval').add(1)
-//     }, 60 * 24)
+processor.onLogMintEvent(async (event, ctx) => {
+  ctx.eventLogger.emit("Mint", {
+    poolId: poolIdToStr(event.data.pool_id),
+    token0In: event.data.asset_0_in,
+    token1In: event.data.asset_1_in,
+    liquidity: event.data.liquidity,
+    recipient: event.data.recipient,
+  });
+});
+
+processor.onLogBurnEvent(async (event, ctx) => {
+  ctx.eventLogger.emit("Burn", {
+    poolId: poolIdToStr(event.data.pool_id),
+    token0Out: event.data.asset_0_out,
+    token1Out: event.data.asset_1_out,
+    liquidity: event.data.liquidity,
+    recipient: event.data.recipient,
+  });
+});
