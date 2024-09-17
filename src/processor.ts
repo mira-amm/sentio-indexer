@@ -14,13 +14,14 @@
 import { LogLevel } from '@sentio/sdk'
 import { FuelNetwork, FuelProcessor } from '@sentio/sdk/fuel'
 import { AmmProcessor } from './types/fuel/AmmProcessor.js'
-import { AssetIdInput } from './types/fuel/Amm.js';
+import { AssetIdInput, IdentityOutput } from './types/fuel/Amm.js';
+import { getPriceByType } from '@sentio/sdk/utils'
 
 const contractAddress = '0xd5a716d967a9137222219657d7877bd8c79c64e1edb5de9f2901c98ebe74da80';
 
 type PoolId = [AssetIdInput, AssetIdInput, boolean];
 
-const poolIdToStr = (poolId: PoolId) => `${poolId[0]}-${poolId[1]}-${poolId[2]}`;
+const poolIdToStr = (poolId: PoolId) => `${poolId[0].bits}_${poolId[1].bits}_${poolId[2]}`;
 
 const processor = AmmProcessor.bind({
   address: contractAddress,
@@ -66,4 +67,36 @@ processor.onLogBurnEvent(async (event, ctx) => {
     liquidity: event.data.liquidity,
     recipient: event.data.recipient,
   });
+});
+
+function getAddress(identity: IdentityOutput): string | null {
+    if (identity.Address) {
+        return identity.Address.bits;
+    } else if (identity.ContractId) {
+        return identity.ContractId.bits;
+    } else {
+        return null;
+    }
+}
+
+//TODO Burn event
+processor.onLogMintEvent(async (event, ctx) => {
+    async function getPrice(
+        coinType: string,
+    ): Promise<number | undefined> {
+        //TODO use getPriceBySymbol
+        return await getPriceByType(processor.config.chainId, coinType, ctx.timestamp);
+    }
+    let asset0 = event.data.pool_id[0].bits;
+    let asset1 = event.data.pool_id[1].bits;
+    const [price0, price1] = await Promise.all([getPrice(asset0), getPrice(asset1)]);
+    //TODO decimals
+    let valueUsd = event.data.asset_0_in.muln(price0 ?? 0).iadd(
+        event.data.asset_1_in.muln(price1 ?? 0)
+    );
+    ctx.eventLogger.emit("Liquidity", {
+        poolId: poolIdToStr(event.data.pool_id),
+        valueUsd: valueUsd,
+        userAddress: getAddress(event.data.recipient),
+    });
 });
