@@ -11,19 +11,36 @@
 // })
 
 
-import { LogLevel } from '@sentio/sdk'
-import { FuelNetwork, FuelProcessor } from '@sentio/sdk/fuel'
+import { LogLevel, } from '@sentio/sdk'
+import { FuelGlobalProcessor, FuelNetwork, FuelProcessor } from '@sentio/sdk/fuel';
+import { InputType, OutputType, Input, bn, ReceiptType } from 'fuels';
 import { AmmProcessor } from './types/fuel/AmmProcessor.js'
 import { AssetIdInput } from './types/fuel/Amm.js';
-
-const contractAddress = '0xd5a716d967a9137222219657d7877bd8c79c64e1edb5de9f2901c98ebe74da80';
+import crypto from 'crypto';
+import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID } from './const.js';
+import { normalizeTxDate } from './utils.js';
+import { Src20Processor } from './types/fuel/Src20Processor.js';
+import { Src20Interface } from './types/fuel/Src20.js';
 
 type PoolId = [AssetIdInput, AssetIdInput, boolean];
 
-const poolIdToStr = (poolId: PoolId) => `${poolId[0]}-${poolId[1]}-${poolId[2]}`;
+const poolIdToStr = (poolId: PoolId) => `${poolId[0].bits.slice(2)}-${poolId[1].bits.slice(2)}-${poolId[2]}`;
+
+// const sha256 = (str: string) => crypto.createHash('sha256').update(str).digest('hex');
+
+function getLPAssetId(poolId: PoolId) {
+  const contractBuffer = Buffer.from(AMM_CONTRACT_ADDRESS.slice(2), 'hex');
+  const subId = crypto.createHash('sha256')
+    .update(Buffer.from(poolId[0].bits.slice(2), 'hex'))
+    .update(Buffer.from(poolId[1].bits.slice(2), 'hex'))
+    .update(Buffer.from(poolId[2] ? '01' : '00', 'hex'))
+    .digest();
+
+  return crypto.createHash('sha256').update(contractBuffer).update(subId).digest('hex');
+}
 
 const processor = AmmProcessor.bind({
-  address: contractAddress,
+  address: AMM_CONTRACT_ADDRESS,
   chainId: FuelNetwork.TEST_NET
 });
 
@@ -31,9 +48,10 @@ processor.onLogCreatePoolEvent(async (event, ctx) => {
   ctx.meter.Counter('pools').add(1);
   ctx.eventLogger.emit("PairCreated", {
     poolId: poolIdToStr(event.data.pool_id),
-    token0: event.data.pool_id[0],
-    token1: event.data.pool_id[1],
+    token0: event.data.pool_id[0].bits,
+    token1: event.data.pool_id[1].bits,
     stable: event.data.pool_id[2],
+    lpAssetId: getLPAssetId(event.data.pool_id),
   });
 });
 
@@ -44,7 +62,7 @@ processor.onLogSwapEvent(async (event, ctx) => {
     token1In: event.data.asset_1_in,
     token0Out: event.data.asset_0_out,
     token1Out: event.data.asset_1_out,
-    recipient: event.data.recipient,
+    recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
   });
 });
 
@@ -53,8 +71,9 @@ processor.onLogMintEvent(async (event, ctx) => {
     poolId: poolIdToStr(event.data.pool_id),
     token0In: event.data.asset_0_in,
     token1In: event.data.asset_1_in,
-    liquidity: event.data.liquidity,
-    recipient: event.data.recipient,
+    liquidity: event.data.liquidity.amount,
+    recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
+    lpAssetId: event.data.liquidity.id.bits,
   });
 });
 
@@ -63,7 +82,8 @@ processor.onLogBurnEvent(async (event, ctx) => {
     poolId: poolIdToStr(event.data.pool_id),
     token0Out: event.data.asset_0_out,
     token1Out: event.data.asset_1_out,
-    liquidity: event.data.liquidity,
-    recipient: event.data.recipient,
+    liquidity: event.data.liquidity.amount,
+    recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
+    lpAssetId: event.data.liquidity.id.bits,
   });
 });
