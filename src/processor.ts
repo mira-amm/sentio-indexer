@@ -167,7 +167,7 @@ FuelGlobalProcessor
       // Emit all asset balance diffs
       Object.entries(assetsBalancesDiffs).forEach(([owner, assetsBalances]) => {
         Object.entries(assetsBalances).forEach(([assetId, assetBalanceDiff]) => {
-          if (assetBalanceDiff === 0n) {
+          if (assetBalanceDiff !== 0n) {
             ctx.eventLogger.emit('assetBalance', {
               distinctId: owner,
               txDate,
