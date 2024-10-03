@@ -2,7 +2,7 @@ SELECT
     pc.chain AS chain_id,
     pc.block_number AS creation_block_number,
     pc.timestamp AS timestamp,
-    pc.address AS pool_address,
+    pc.lpAssetId AS pool_address,
     pc.lpAssetId AS lp_token_address, -- Using lpAssetId as the LP token address
     'MIRA-LP' AS lp_token_symbol,
     pc.token0 AS token_address,
