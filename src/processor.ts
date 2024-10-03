@@ -13,6 +13,8 @@ const setDecimalsEventId = "18149631459970394923";
 
 const src20Interface = new Interface(Src20.abi);
 
+const ETH_ASSET_ID = '0xf8f8b6283d7fa5b672b530cbb84fcccb4ff8dc40f8176ef4544ddb1f1952ad07';
+
 type PoolId = [AssetIdInput, AssetIdInput, boolean];
 
 const poolIdToStr = (poolId: PoolId) => `${poolId[0].bits.slice(2)}-${poolId[1].bits.slice(2)}-${poolId[2]}`;
@@ -94,6 +96,21 @@ FuelGlobalProcessor
   })
   .onTransaction(
     async (tx, ctx) => {
+      if (tx.blockNumber === '1') {
+        ctx.eventLogger.emit('SetName', {
+          assetId: ETH_ASSET_ID,
+          name: 'Ether',
+        });
+        ctx.eventLogger.emit('SetSymbol', {
+          assetId: ETH_ASSET_ID,
+          symbol: 'Symbol',
+        });
+        ctx.eventLogger.emit('SetDecimals', {
+          assetId: ETH_ASSET_ID,
+          decimals: 9,
+        });
+      }
+
       const txDate = tx.date ? normalizeTxDate(tx.date) : null;
 
       const assetsBalancesDiffs: Record<string, Record<string, bigint>> = {};
