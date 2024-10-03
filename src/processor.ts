@@ -1,26 +1,17 @@
-// import { Counter } from '@sentio/sdk'
-// import { ERC20Processor } from '@sentio/sdk/eth/builtin'
-
-// const tokenCounter = Counter.register('token')
-
-// const address = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
-
-// ERC20Processor.bind({ address }).onEventTransfer(async (event, ctx) => {
-//   const val = event.args.value.scaleDown(18)
-//   tokenCounter.add(ctx, val)
-// })
-
-
-import { LogLevel, } from '@sentio/sdk'
 import { FuelGlobalProcessor, FuelNetwork, FuelProcessor } from '@sentio/sdk/fuel';
-import { InputType, OutputType, Input, bn, ReceiptType, ZeroBytes32 } from 'fuels';
+import { InputType, OutputType, Interface, bn, ReceiptType, ZeroBytes32 } from 'fuels';
 import { AmmProcessor } from './types/fuel/AmmProcessor.js'
 import { AssetIdInput } from './types/fuel/Amm.js';
 import crypto from 'crypto';
 import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID } from './const.js';
 import { normalizeTxDate } from './utils.js';
-import { Src20Processor } from './types/fuel/Src20Processor.js';
-import { Src20Interface } from './types/fuel/Src20.js';
+import { SetDecimalsEventInput, SetNameEventInput, SetSymbolEventInput, Src20, Src20Interface } from './types/fuel/Src20.js';
+
+const setNameEventId = "7845998088195677205";
+const setSymbolEventId = "12152039456660331088";
+const setDecimalsEventId = "18149631459970394923";
+
+const src20Interface = new Interface(Src20.abi);
 
 type PoolId = [AssetIdInput, AssetIdInput, boolean];
 
@@ -101,8 +92,37 @@ FuelGlobalProcessor
 
       if (tx.status === 'success') {
         for (const receipt of tx.receipts) {
-          if (receipt.type === ReceiptType.LogData) {
-            // Check for SRC20 metadata events
+          if (receipt.type === ReceiptType.Mint) {
+            ctx.eventLogger.emit('Mint', {
+              assetId: receipt.assetId,
+              contractId: receipt.contractId,
+              subId: receipt.subId,
+            });
+          } else if (receipt.type === ReceiptType.LogData) {
+            switch (receipt.val1.toString()) {
+              case setNameEventId:
+                const [nameEvent]: [SetNameEventInput] = src20Interface.decodeLog(receipt.data, setNameEventId);
+
+                ctx.eventLogger.emit('SetName', {
+                  assetId: nameEvent.asset.bits,
+                  name: nameEvent.name,
+                });
+                break;
+              case setSymbolEventId:
+                const [symbolEvent]: [SetSymbolEventInput] = src20Interface.decodeLog(receipt.data, setSymbolEventId);
+                ctx.eventLogger.emit('SetSymbol', {
+                  assetId: symbolEvent.asset. bits,
+                  symbol: symbolEvent.symbol,
+                });
+                break;
+              case setDecimalsEventId:
+                const [decimalsEvent]: [SetDecimalsEventInput] = src20Interface.decodeLog(receipt.data, setDecimalsEventId);
+                ctx.eventLogger.emit('SetDecimals', {
+                  assetId: decimalsEvent.asset.bits,
+                  decimals: decimalsEvent.decimals,
+                });
+                break;
+            }
           } else if (receipt.type === ReceiptType.Transfer || (receipt.type === ReceiptType.Call && receipt.amount.lt(bn(0)))) {
             const assetsBaseOwner = assetsBalancesDiffs[receipt.to] ?? {};
             const assetsBaseOwnerBalance = assetsBaseOwner[receipt.assetId] ?? 0n;
