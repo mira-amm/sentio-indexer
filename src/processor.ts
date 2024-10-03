@@ -36,47 +36,55 @@ const processor = AmmProcessor.bind({
 });
 
 processor.onLogCreatePoolEvent(async (event, ctx) => {
-  ctx.meter.Counter('pools').add(1);
-  ctx.eventLogger.emit("PairCreated", {
-    poolId: poolIdToStr(event.data.pool_id),
-    token0: event.data.pool_id[0].bits,
-    token1: event.data.pool_id[1].bits,
-    stable: event.data.pool_id[2],
-    lpAssetId: getLPAssetId(event.data.pool_id),
-  });
+  if (ctx.transaction?.status === 'success') {
+    ctx.meter.Counter('pools').add(1);
+    ctx.eventLogger.emit("PairCreated", {
+      poolId: poolIdToStr(event.data.pool_id),
+      token0: event.data.pool_id[0].bits,
+      token1: event.data.pool_id[1].bits,
+      stable: event.data.pool_id[2],
+      lpAssetId: getLPAssetId(event.data.pool_id),
+    });
+  }
 });
 
 processor.onLogSwapEvent(async (event, ctx) => {
-  ctx.eventLogger.emit("Swap", {
-    poolId: poolIdToStr(event.data.pool_id),
-    token0In: event.data.asset_0_in,
-    token1In: event.data.asset_1_in,
-    token0Out: event.data.asset_0_out,
-    token1Out: event.data.asset_1_out,
-    recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
-  });
+  if (ctx.transaction?.status === 'success') {
+    ctx.eventLogger.emit("Swap", {
+      poolId: poolIdToStr(event.data.pool_id),
+      token0In: event.data.asset_0_in,
+      token1In: event.data.asset_1_in,
+      token0Out: event.data.asset_0_out,
+      token1Out: event.data.asset_1_out,
+      recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
+    });
+  }
 });
 
 processor.onLogMintEvent(async (event, ctx) => {
-  ctx.eventLogger.emit("Mint", {
-    poolId: poolIdToStr(event.data.pool_id),
-    token0In: event.data.asset_0_in,
-    token1In: event.data.asset_1_in,
-    liquidity: event.data.liquidity.amount,
-    recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
-    lpAssetId: event.data.liquidity.id.bits,
-  });
+  if (ctx.transaction?.status === 'success') {
+    ctx.eventLogger.emit("Mint", {
+      poolId: poolIdToStr(event.data.pool_id),
+      token0In: event.data.asset_0_in,
+      token1In: event.data.asset_1_in,
+      liquidity: event.data.liquidity.amount,
+      recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
+      lpAssetId: event.data.liquidity.id.bits,
+    });
+  }
 });
 
 processor.onLogBurnEvent(async (event, ctx) => {
-  ctx.eventLogger.emit("Burn", {
-    poolId: poolIdToStr(event.data.pool_id),
-    token0Out: event.data.asset_0_out,
-    token1Out: event.data.asset_1_out,
-    liquidity: event.data.liquidity.amount,
-    recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
-    lpAssetId: event.data.liquidity.id.bits,
-  });
+  if (ctx.transaction?.status === 'success') {
+    ctx.eventLogger.emit("Burn", {
+      poolId: poolIdToStr(event.data.pool_id),
+      token0Out: event.data.asset_0_out,
+      token1Out: event.data.asset_1_out,
+      liquidity: event.data.liquidity.amount,
+      recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
+      lpAssetId: event.data.liquidity.id.bits,
+    });
+  }
 });
 
 
