@@ -25,8 +25,22 @@ pair_info AS (
     SELECT
         pc.address AS pool_address,
         pc.token0 AS token_0_address,
-        pc.token1 AS token_1_address
+        pc.token1 AS token_1_address,
+        CASE WHEN pc.stable = 0 THEN 0.03 ELSE 0.005 END AS pool_fee
     FROM PairCreated pc
+),
+token_symbols AS (
+    SELECT
+        va.assetId AS token_address,
+        LOWER(va.symbol) AS token_symbol  -- Convert symbol to lowercase for case-insensitive matching
+    FROM VerifiedAsset va
+),
+latest_prices AS (
+    SELECT
+        p.symbol,
+        p.price,
+        p.time AS price_time,
+    FROM __prices__ p
 )
 SELECT
     toUnixTimestamp(swap.timestamp) AS timestamp,
@@ -45,8 +59,10 @@ SELECT
         WHEN swap.input_token = 'token0' THEN swap.output_token_amount / NULLIF(swap.input_token_amount, 0)
         ELSE swap.input_token_amount / NULLIF(swap.output_token_amount, 0)
     END AS spot_price_after_swap,
-    NULL AS swap_amount_usd,  -- Placeholder for USD calculation, requires external data
-    NULL AS fees_usd  -- Placeholder for fee calculation, requires external data
+    COALESCE(swap.input_token_amount * lp.price, 0) AS swap_amount_usd,  -- Placeholder for USD calculation, requires external data
+    COALESCE(swap.input_token_amount * lp.price * pair.pool_fee, 0) AS fees_usd  -- Placeholder for fee calculation, requires external data
 FROM swap_events swap
 LEFT JOIN pair_info pair ON swap.pool_address = pair.pool_address
+LEFT JOIN token_symbols ts ON CASE WHEN swap.input_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END = ts.token_address
+LEFT JOIN latest_prices lp ON ts.token_symbol = LOWER(lp.symbol) AND lp.row_num = 1  -- Match the most recent price for the input token symbol
 ORDER BY swap.timestamp, swap.pool_address;
