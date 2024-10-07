@@ -49,33 +49,74 @@ daily_net_flows AS (
 ),
 pair_created AS (
     SELECT
-        poolId AS pool_address,
-        token0 AS token_0_address,
-        token1 AS token_1_address
-    FROM PairCreated
+        pc.poolId AS pool_address,
+        pc.token0 AS token_0_address,
+        pc.token1 AS token_1_address,
+        CASE WHEN pc.stable = 1 THEN 0.0005 ELSE 0.003 END AS fee_rate  -- Set fee rate based on stability
+    FROM PairCreated pc
+),
+token_info AS (
+    SELECT
+        va.assetId AS token_address,
+        LOWER(va.symbol) AS token_symbol,
+        va.decimals
+    FROM VerifiedAsset va
+),
+hourly_prices AS (
+    SELECT
+        p.symbol,
+        p.price,
+        toStartOfHour(p.time) AS price_hour,
+        ROW_NUMBER() OVER (PARTITION BY p.symbol, toStartOfHour(p.time) ORDER BY p.time DESC) AS row_num
+    FROM __prices__ p
+    WHERE time > toDateTime64('2024-08-01 00:00:00', 6, 'UTC')  -- Only get prices after Aug 2024 for performance reasons
 )
 SELECT
-    toUnixTimestamp(day) AS timestamp, -- Day as Unix timestamp
-    formatDateTime(day, '%Y-%m-%d') AS block_date, -- Day in YYYY-MM-DD format
+    toUnixTimestamp(dnf.day) AS timestamp, -- Day as Unix timestamp
+    formatDateTime(dnf.day, '%Y-%m-%d') AS block_date, -- Day in YYYY-MM-DD format
     '9889' AS chain_id, -- Hardcoded chain_id
-    pool_address,
+    dnf.pool_address,
     0 AS token_index,
     pc.token_0_address AS token_address,
-    SUM(net_token_0_inflow) OVER (PARTITION BY pool_address ORDER BY day) AS token_amount, -- Cumulative amount of tokens for token0
-    token_0_volume AS volume_amount -- Volume amount at the point in time
+    SUM(dnf.net_token_0_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti0.decimals) AS token_amount, -- Adjusted cumulative amount for token0
+    COALESCE(hp0.price * (SUM(dnf.net_token_0_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti0.decimals)), 0) AS token_amount_usd,  -- USD value for token0
+    dnf.token_0_volume / POW(10, ti0.decimals) AS volume_amount, -- Adjusted volume for token0
+    COALESCE(hp0.price * (dnf.token_0_volume / POW(10, ti0.decimals)), 0) AS volume_usd, -- USD value for volume of token0
+    pc.fee_rate,  -- Fee rate
+    COALESCE(hp0.price * (dnf.token_0_volume / POW(10, ti0.decimals)), 0) * pc.fee_rate AS total_fees_usd, -- Total fees in USD
+    COALESCE(hp0.price * (dnf.token_0_volume / POW(10, ti0.decimals)), 0) * pc.fee_rate AS user_fees_usd, -- Total fees in USD
+    0 as protocol_fees_usd
 FROM daily_net_flows dnf
 JOIN pair_created pc ON dnf.pool_address = pc.pool_address
+LEFT JOIN token_info ti0 ON pc.token_0_address = ti0.token_address
+LEFT JOIN (
+    SELECT symbol, price, price_hour
+    FROM hourly_prices
+    WHERE row_num = 1
+) hp0 ON LOWER(hp0.symbol) = ti0.token_symbol AND toStartOfHour(toDateTime(dnf.day)) = hp0.price_hour
 
 UNION ALL
 
 SELECT
-    toUnixTimestamp(day) AS timestamp, -- Day as Unix timestamp
-    formatDateTime(day, '%Y-%m-%d') AS block_date, -- Day in YYYY-MM-DD format
+    toUnixTimestamp(dnf.day) AS timestamp, -- Day as Unix timestamp
+    formatDateTime(dnf.day, '%Y-%m-%d') AS block_date, -- Day in YYYY-MM-DD format
     '9889' AS chain_id, -- Hardcoded chain_id
-    pool_address,
+    dnf.pool_address,
     1 AS token_index,
     pc.token_1_address AS token_address,
-    SUM(net_token_1_inflow) OVER (PARTITION BY pool_address ORDER BY day) AS token_amount, -- Cumulative amount of tokens for token1
-    token_1_volume AS volume_amount -- Volume amount at the point in time
+    SUM(dnf.net_token_1_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti1.decimals) AS token_amount, -- Adjusted cumulative amount for token1
+    COALESCE(hp1.price * (SUM(dnf.net_token_1_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti1.decimals)), 0) AS token_amount_usd,  -- USD value for token1
+    dnf.token_1_volume / POW(10, ti1.decimals) AS volume_amount, -- Adjusted volume for token1
+    COALESCE(hp1.price * (dnf.token_1_volume / POW(10, ti1.decimals)), 0) AS volume_usd, -- USD value for volume of token1
+    pc.fee_rate,  -- Fee rate
+    COALESCE(hp1.price * (dnf.token_1_volume / POW(10, ti1.decimals)), 0) * pc.fee_rate AS total_fees_usd, -- Total fees in USD
+    COALESCE(hp1.price * (dnf.token_1_volume / POW(10, ti1.decimals)), 0) * pc.fee_rate AS user_fees_usd, -- Total fees in USD
+    0 as protocol_fees_usd
 FROM daily_net_flows dnf
-JOIN pair_created pc ON dnf.pool_address = pc.pool_address;
+JOIN pair_created pc ON dnf.pool_address = pc.pool_address
+LEFT JOIN token_info ti1 ON pc.token_1_address = ti1.token_address
+LEFT JOIN (
+    SELECT symbol, price, price_hour
+    FROM hourly_prices
+    WHERE row_num = 1
+) hp1 ON LOWER(hp1.symbol) = ti1.token_symbol AND toStartOfHour(toDateTime(dnf.day)) = hp1.price_hour;
