@@ -7,7 +7,6 @@ WITH swap_events AS (
         s.transaction_hash,
         s.address AS pool_address,
         s.recipient AS taker_address,
-        -- Assumption: transaction signer is not directly stored in Swap, using recipient as user address for simplicity
         COALESCE(s.recipient, '') AS user_address,
         CASE
             WHEN s.token0In > 0 THEN 'token0'
@@ -18,7 +17,8 @@ WITH swap_events AS (
             ELSE 'token1'
         END AS output_token,
         s.token0In + s.token1In AS input_token_amount,
-        s.token0Out + s.token1Out AS output_token_amount
+        s.token0Out + s.token1Out AS output_token_amount,
+        toStartOfHour(s.timestamp) AS trade_hour  -- Round trade timestamp to the nearest hour
     FROM Swap s
 ),
 pair_info AS (
@@ -29,17 +29,19 @@ pair_info AS (
         CASE WHEN pc.stable = 0 THEN 0.03 ELSE 0.005 END AS pool_fee
     FROM PairCreated pc
 ),
-token_symbols AS (
+token_info AS (
     SELECT
         va.assetId AS token_address,
-        LOWER(va.symbol) AS token_symbol  -- Convert symbol to lowercase for case-insensitive matching
+        LOWER(va.symbol) AS token_symbol,
+        va.decimals  -- Number of decimals to adjust the token amount
     FROM VerifiedAsset va
 ),
-latest_prices AS (
+hourly_prices AS (
     SELECT
         p.symbol,
         p.price,
-        p.time AS price_time,
+        toStartOfHour(p.time) AS price_hour,  -- Round price timestamp to the nearest hour
+        ROW_NUMBER() OVER (PARTITION BY p.symbol, toStartOfHour(p.time) ORDER BY p.time DESC) AS row_num  -- Select one price per hour per symbol
     FROM __prices__ p
 )
 SELECT
@@ -52,17 +54,27 @@ SELECT
     swap.taker_address,
     swap.pool_address,
     CASE WHEN swap.input_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END AS input_token_address,
-    swap.input_token_amount,
+    CASE
+        WHEN swap.input_token = 'token0' THEN swap.input_token_amount / POW(10, ti.decimals)  -- Adjust input amount by decimals
+        ELSE swap.input_token_amount / POW(10, ti.decimals)
+    END AS input_token_amount,  -- Adjusted input token amount
     CASE WHEN swap.output_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END AS output_token_address,
-    swap.output_token_amount,
+    CASE
+        WHEN swap.output_token = 'token0' THEN swap.output_token_amount / POW(10, ti.decimals)  -- Adjust output amount by decimals
+        ELSE swap.output_token_amount / POW(10, ti.decimals)
+    END AS output_token_amount,  -- Adjusted output token amount
     CASE
         WHEN swap.input_token = 'token0' THEN swap.output_token_amount / NULLIF(swap.input_token_amount, 0)
         ELSE swap.input_token_amount / NULLIF(swap.output_token_amount, 0)
     END AS spot_price_after_swap,
-    COALESCE(swap.input_token_amount * lp.price, 0) AS swap_amount_usd,  -- Placeholder for USD calculation, requires external data
-    COALESCE(swap.input_token_amount * lp.price * pair.pool_fee, 0) AS fees_usd  -- Placeholder for fee calculation, requires external data
+    COALESCE((swap.input_token_amount / POW(10, ti.decimals)) * hp.price, 0) AS swap_amount_usd,  -- Adjust input amount by decimals and calculate USD value
+    COALESCE((swap.input_token_amount / POW(10, ti.decimals)) * hp.price * pair.pool_fee, 0) AS fees_usd  -- Adjust input amount by decimals and calculate fees
 FROM swap_events swap
 LEFT JOIN pair_info pair ON swap.pool_address = pair.pool_address
-LEFT JOIN token_symbols ts ON CASE WHEN swap.input_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END = ts.token_address
-LEFT JOIN latest_prices lp ON ts.token_symbol = LOWER(lp.symbol) AND lp.row_num = 1  -- Match the most recent price for the input token symbol
+LEFT JOIN token_info ti ON CASE WHEN swap.input_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END = ti.token_address
+LEFT JOIN (
+    SELECT symbol, price, price_hour
+    FROM hourly_prices
+    WHERE row_num = 1  -- Select the most recent price within the same hour
+) hp ON ti.token_symbol = LOWER(hp.symbol) AND swap.trade_hour = hp.price_hour  -- Match trades and prices by hour
 ORDER BY swap.timestamp, swap.pool_address;
