@@ -132,7 +132,7 @@ FuelGlobalProcessor
       if (tx.status === 'success') {
         for (const receipt of tx.receipts) {
           if (receipt.type === ReceiptType.Mint) {
-            ctx.eventLogger.emit('Mint', {
+            ctx.eventLogger.emit('AssetMint', {
               assetId: receipt.assetId,
               contractId: receipt.contractId,
               subId: receipt.subId,
