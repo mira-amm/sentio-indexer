@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID } from './const.js';
 import { normalizeTxDate } from './utils.js';
 import { SetDecimalsEventInput, SetNameEventInput, SetSymbolEventInput, Src20, Src20Interface } from './types/fuel/Src20.js';
+import verifiedAssets from './verified-assets.json';
 
 const setNameEventId = "7845998088195677205";
 const setSymbolEventId = "12152039456660331088";
@@ -109,6 +110,19 @@ FuelGlobalProcessor
           assetId: ETH_ASSET_ID,
           decimals: 9,
         });
+
+        for (const asset of verifiedAssets) {
+          const assetChain = asset.networks.find((n) => n.chain === NETWORK_NAME && n.type === 'fuel');
+          console.log(assetChain);
+          if (assetChain) {
+            ctx.eventLogger.emit('VerifiedAsset', {
+              assetId: assetChain.assetId,
+              name: asset.name,
+              symbol: asset.symbol,
+              decimals: assetChain.decimals,
+            });
+          }
+        }
       }
 
       const txDate = tx.date ? normalizeTxDate(tx.date) : null;
