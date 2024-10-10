@@ -1,4 +1,37 @@
-WITH daily_mint_inflows AS (
+WITH date_range AS (
+    SELECT
+        addDays(toDate(start_date), number) AS day
+    FROM (
+        SELECT toDate(min(m.timestamp)) AS start_date FROM Mint m  -- Start date from the first mint event
+    ) as date_range
+    ARRAY JOIN range(dateDiff('day', start_date, today())) AS number
+),
+pair_created AS (
+    SELECT
+        pc.poolId AS pool_address,
+        pc.token0 AS token_0_address,
+        pc.token1 AS token_1_address,
+        CASE WHEN pc.stable = 1 THEN 0.0005 ELSE 0.003 END AS fee_rate  -- Set fee rate based on stability
+    FROM PairCreated pc
+),
+pair_tokens AS (
+    SELECT
+        pc.pool_address,
+        pc.token_0_address AS token_address,
+        0 AS token_index,
+        pc.fee_rate
+    FROM pair_created pc
+
+    UNION ALL
+
+    SELECT
+        pc.pool_address,
+        pc.token_1_address AS token_address,
+        1 AS token_index,
+        pc.fee_rate
+    FROM pair_created pc
+),
+daily_mint_inflows AS (
     SELECT
         poolId AS pool_address,
         toDate(m.timestamp) AS day,
@@ -31,29 +64,23 @@ daily_swap_flows AS (
 ),
 daily_net_flows AS (
     SELECT
-        COALESCE(mint.pool_address, burn.pool_address, swap.pool_address) AS pool_address,
-        COALESCE(mint.day, burn.day, swap.day) AS day,
-        COALESCE(mint.token_0_inflow, 0) + COALESCE(swap.token_0_inflow, 0) - COALESCE(swap.token_0_outflow, 0) - COALESCE(burn.token_0_outflow, 0) AS net_token_0_inflow,
-        COALESCE(mint.token_1_inflow, 0) + COALESCE(swap.token_1_inflow, 0) - COALESCE(swap.token_1_outflow, 0) - COALESCE(burn.token_1_outflow, 0) AS net_token_1_inflow,
-        COALESCE(swap.token_0_volume, 0) AS token_0_volume,  -- Include total volume for token0
-        COALESCE(swap.token_1_volume, 0) AS token_1_volume   -- Include total volume for token1
-    FROM daily_mint_inflows mint
+        d.day AS day,
+        p.pool_address as pool_address,
+        p.token_address,
+        p.token_index,
+        p.fee_rate AS fee_rate,
+        CASE WHEN p.token_index = 0
+            THEN COALESCE(mint.token_0_inflow, 0) - COALESCE(burn.token_0_outflow) - COALESCE(swap.token_0_outflow, 0) + COALESCE(swap.token_0_inflow, 0)
+            ELSE COALESCE(mint.token_1_inflow, 0) - COALESCE(burn.token_0_outflow) - COALESCE(swap.token_1_outflow, 0) + COALESCE(swap.token_1_inflow, 0)
+        END as net_flow
+    FROM date_range d
+    CROSS JOIN pair_tokens p
+    FULL OUTER JOIN daily_mint_inflows mint
+        ON mint.day = d.day AND mint.pool_address = p.pool_address
     FULL OUTER JOIN daily_burn_outflows burn 
-        ON mint.pool_address = burn.pool_address 
-        AND mint.day = burn.day
+        ON burn.day = d.day AND burn.pool_address = p.pool_address
     FULL OUTER JOIN daily_swap_flows swap 
-        ON mint.pool_address = swap.pool_address 
-        AND mint.day = swap.day
-        OR burn.pool_address = swap.pool_address 
-        AND burn.day = swap.day
-),
-pair_created AS (
-    SELECT
-        pc.poolId AS pool_address,
-        pc.token0 AS token_0_address,
-        pc.token1 AS token_1_address,
-        CASE WHEN pc.stable = 1 THEN 0.0005 ELSE 0.003 END AS fee_rate  -- Set fee rate based on stability
-    FROM PairCreated pc
+        ON swap.day = d.day AND swap.pool_address = p.pool_address
 ),
 token_info AS (
     SELECT
@@ -65,58 +92,28 @@ token_info AS (
 hourly_prices AS (
     SELECT
         p.symbol,
-        p.price,
-        toStartOfHour(p.time) AS price_hour,
-        ROW_NUMBER() OVER (PARTITION BY p.symbol, toStartOfHour(p.time) ORDER BY p.time DESC) AS row_num
+        argMin(price, time) AS price,
+        toStartOfHour(min(time)) AS price_hour
     FROM __prices__ p
-    WHERE time > toDateTime64('2024-08-01 00:00:00', 6, 'UTC')  -- Only get prices after Aug 2024 for performance reasons
+    INNER JOIN VerifiedAsset va ON p.symbol = lower(va.symbol)
+    WHERE p.time > toDateTime64('2024-08-01 00:00:00', 6, 'UTC')
+    GROUP BY p.symbol, toStartOfHour(p.time)
 )
-SELECT
-    toUnixTimestamp(dnf.day) AS timestamp, -- Day as Unix timestamp
-    formatDateTime(dnf.day, '%Y-%m-%d') AS block_date, -- Day in YYYY-MM-DD format
-    '9889' AS chain_id, -- Hardcoded chain_id
-    dnf.pool_address,
-    0 AS token_index,
-    pc.token_0_address AS token_address,
-    SUM(dnf.net_token_0_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti0.decimals) AS token_amount, -- Adjusted cumulative amount for token0
-    COALESCE(hp0.price * (SUM(dnf.net_token_0_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti0.decimals)), 0) AS token_amount_usd,  -- USD value for token0
-    dnf.token_0_volume / POW(10, ti0.decimals) AS volume_amount, -- Adjusted volume for token0
-    COALESCE(hp0.price * (dnf.token_0_volume / POW(10, ti0.decimals)), 0) AS volume_usd, -- USD value for volume of token0
-    pc.fee_rate,  -- Fee rate
-    COALESCE(hp0.price * (dnf.token_0_volume / POW(10, ti0.decimals)), 0) * pc.fee_rate AS total_fees_usd, -- Total fees in USD
-    COALESCE(hp0.price * (dnf.token_0_volume / POW(10, ti0.decimals)), 0) * pc.fee_rate AS user_fees_usd, -- Total fees in USD
-    0 as protocol_fees_usd
-FROM daily_net_flows dnf
-JOIN pair_created pc ON dnf.pool_address = pc.pool_address
-LEFT JOIN token_info ti0 ON pc.token_0_address = ti0.token_address
-LEFT JOIN (
-    SELECT symbol, price, price_hour
-    FROM hourly_prices
-    WHERE row_num = 1
-) hp0 ON LOWER(hp0.symbol) = ti0.token_symbol AND toStartOfHour(toDateTime(dnf.day)) = hp0.price_hour
 
-UNION ALL
 
 SELECT
     toUnixTimestamp(dnf.day) AS timestamp, -- Day as Unix timestamp
     formatDateTime(dnf.day, '%Y-%m-%d') AS block_date, -- Day in YYYY-MM-DD format
     '9889' AS chain_id, -- Hardcoded chain_id
     dnf.pool_address,
-    1 AS token_index,
-    pc.token_1_address AS token_address,
-    SUM(dnf.net_token_1_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti1.decimals) AS token_amount, -- Adjusted cumulative amount for token1
-    COALESCE(hp1.price * (SUM(dnf.net_token_1_inflow) OVER (PARTITION BY dnf.pool_address ORDER BY dnf.day) / POW(10, ti1.decimals)), 0) AS token_amount_usd,  -- USD value for token1
-    dnf.token_1_volume / POW(10, ti1.decimals) AS volume_amount, -- Adjusted volume for token1
-    COALESCE(hp1.price * (dnf.token_1_volume / POW(10, ti1.decimals)), 0) AS volume_usd, -- USD value for volume of token1
-    pc.fee_rate,  -- Fee rate
-    COALESCE(hp1.price * (dnf.token_1_volume / POW(10, ti1.decimals)), 0) * pc.fee_rate AS total_fees_usd, -- Total fees in USD
-    COALESCE(hp1.price * (dnf.token_1_volume / POW(10, ti1.decimals)), 0) * pc.fee_rate AS user_fees_usd, -- Total fees in USD
-    0 as protocol_fees_usd
-FROM daily_net_flows dnf
-JOIN pair_created pc ON dnf.pool_address = pc.pool_address
-LEFT JOIN token_info ti1 ON pc.token_1_address = ti1.token_address
-LEFT JOIN (
-    SELECT symbol, price, price_hour
-    FROM hourly_prices
-    WHERE row_num = 1
-) hp1 ON LOWER(hp1.symbol) = ti1.token_symbol AND toStartOfHour(toDateTime(dnf.day)) = hp1.price_hour;
+    dnf.token_index,
+    dnf.token_address AS token_address,
+    dnf.fee_rate,  -- Fee rate
+    0 AS protocol_fees_usd,  -- Dummy column for now
+    dnf.net_flow AS net_flow
+
+FROM daily_net_flows dnf  -- Generate snapshots for every date
+-- LEFT JOIN daily_net_flows dnf ON d.day = dnf.day AND p.pool_address = dnf.pool_address
+-- -- LEFT JOIN token_info ti ON p.token_address = ti.token_address
+-- -- LEFT JOIN hourly_prices hp0 ON hp0.symbol = ti.token_symbol
+-- ORDER BY d.day, p.pool_address;
