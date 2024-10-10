@@ -43,6 +43,7 @@ hourly_prices AS (
         toStartOfHour(p.time) AS price_hour,  -- Round price timestamp to the nearest hour
         ROW_NUMBER() OVER (PARTITION BY p.symbol, toStartOfHour(p.time) ORDER BY p.time DESC) AS row_num  -- Select one price per hour per symbol
     FROM __prices__ p
+    WHERE p.time > toDateTime64('2024-08-01 00:00:00', 6, 'UTC')
 )
 SELECT
     toUnixTimestamp(swap.timestamp) AS timestamp,
@@ -52,17 +53,14 @@ SELECT
     swap.transaction_hash,
     swap.user_address,
     swap.taker_address,
-    swap.pool_address,
-    CASE WHEN swap.input_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END AS input_token_address,
-    CASE
-        WHEN swap.input_token = 'token0' THEN swap.input_token_amount / POW(10, ti.decimals)  -- Adjust input amount by decimals
-        ELSE swap.input_token_amount / POW(10, ti.decimals)
-    END AS input_token_amount,  -- Adjusted input token amount
-    CASE WHEN swap.output_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END AS output_token_address,
-    CASE
-        WHEN swap.output_token = 'token0' THEN swap.output_token_amount / POW(10, ti.decimals)  -- Adjust output amount by decimals
-        ELSE swap.output_token_amount / POW(10, ti.decimals)
-    END AS output_token_amount,  -- Adjusted output token amount
+    'MIRA-LP' as pair_name,
+    swap.pool_address AS pool_address,
+    ti.token_symbol as input_token_symbol,
+    ti.token_address AS input_token_address,
+    swap.input_token_amount / POW(10, ti.decimals) AS input_token_amount,  -- Adjusted input token amount
+    to.token_symbol as output_token_symbol,
+    to.token_address AS output_token_address,
+    swap.output_token_amount / POW(10, ti.decimals) AS output_token_amount,  -- Adjusted output token amount
     CASE
         WHEN swap.input_token = 'token0' THEN swap.output_token_amount / NULLIF(swap.input_token_amount, 0)
         ELSE swap.input_token_amount / NULLIF(swap.output_token_amount, 0)
@@ -72,6 +70,7 @@ SELECT
 FROM swap_events swap
 LEFT JOIN pair_info pair ON swap.pool_address = pair.pool_address
 LEFT JOIN token_info ti ON CASE WHEN swap.input_token = 'token0' THEN pair.token_0_address ELSE pair.token_1_address END = ti.token_address
+LEFT JOIN token_info to ON CASE WHEN swap.input_token = 'token0' THEN pair.token_1_address ELSE pair.token_0_address END = to.token_address
 LEFT JOIN (
     SELECT symbol, price, price_hour
     FROM hourly_prices
