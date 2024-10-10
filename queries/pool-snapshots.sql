@@ -1,10 +1,19 @@
-WITH date_range AS (
+WITH RECURSIVE hours as (
     SELECT
-        addDays(toDate(start_date), number) AS day
-    FROM (
-        SELECT toDate(min(m.timestamp)) AS start_date FROM Mint m  -- Start date from the first mint event
-    ) as date_range
-    ARRAY JOIN range(dateDiff('day', start_date, today())) AS number
+       assetId,
+       distinct_id,
+       MIN(DATE_TRUNC('hour', timestamp)) AS hour
+    FROM assetBalance
+    GROUP BY distinct_id, assetId
+
+    UNION ALL
+
+    SELECT
+        assetId,
+        distinct_id,
+        uh.hour + INTERVAL '1 hour'
+    FROM hours uh
+    WHERE uh.hour + INTERVAL '1 hour' <= CURRENT_TIMESTAMP()   
 ),
 pair_created AS (
     SELECT
@@ -31,28 +40,28 @@ pair_tokens AS (
         pc.fee_rate
     FROM pair_created pc
 ),
-daily_mint_inflows AS (
+hourly_mint_inflows AS (
     SELECT
         poolId AS pool_address,
-        toDate(m.timestamp) AS day,
+        DATE_TRUNC('hour', m.timestamp) AS hour,
         SUM(m.token0In) AS token_0_inflow,
         SUM(m.token1In) AS token_1_inflow
     FROM Mint m
-    GROUP BY poolId, toDate(m.timestamp)
+    GROUP BY poolId, hour
 ),
-daily_burn_outflows AS (
+hourly_burn_outflows AS (
     SELECT
         poolId AS pool_address,
-        toDate(b.timestamp) AS day,
+        DATE_TRUNC('hour', b.timestamp) AS hour,
         SUM(b.token0Out) AS token_0_outflow,
         SUM(b.token1Out) AS token_1_outflow
     FROM Burn b
-    GROUP BY poolId, toDate(b.timestamp)
+    GROUP BY poolId, hour
 ),
-daily_swap_flows AS (
+hourly_swap_flows AS (
     SELECT
         poolId AS pool_address,
-        toDate(s.timestamp) AS day,
+        DATE_TRUNC('hour', s.timestamp) AS hour,
         SUM(s.token0In) AS token_0_inflow,
         SUM(s.token1In) AS token_1_inflow,
         SUM(s.token0Out) AS token_0_outflow,
@@ -60,11 +69,11 @@ daily_swap_flows AS (
         SUM(s.token0In + s.token0Out) AS token_0_volume,  -- Calculate total volume for token0
         SUM(s.token1In + s.token1Out) AS token_1_volume   -- Calculate total volume for token1
     FROM Swap s
-    GROUP BY poolId, toDate(s.timestamp)
+    GROUP BY poolId, hour
 ),
-daily_net_flows AS (
+hourly_net_flows AS (
     SELECT
-        d.day AS day,
+        h.hour AS hour,
         p.pool_address as pool_address,
         p.token_address,
         p.token_index,
@@ -73,14 +82,14 @@ daily_net_flows AS (
             THEN COALESCE(mint.token_0_inflow, 0) - COALESCE(burn.token_0_outflow) - COALESCE(swap.token_0_outflow, 0) + COALESCE(swap.token_0_inflow, 0)
             ELSE COALESCE(mint.token_1_inflow, 0) - COALESCE(burn.token_0_outflow) - COALESCE(swap.token_1_outflow, 0) + COALESCE(swap.token_1_inflow, 0)
         END as net_flow
-    FROM date_range d
+    FROM hours h
     CROSS JOIN pair_tokens p
-    FULL OUTER JOIN daily_mint_inflows mint
-        ON mint.day = d.day AND mint.pool_address = p.pool_address
-    FULL OUTER JOIN daily_burn_outflows burn 
-        ON burn.day = d.day AND burn.pool_address = p.pool_address
-    FULL OUTER JOIN daily_swap_flows swap 
-        ON swap.day = d.day AND swap.pool_address = p.pool_address
+    FULL OUTER JOIN hourly_mint_inflows mint
+        ON mint.hour = h.hour AND mint.pool_address = p.pool_address
+    FULL OUTER JOIN hourly_burn_outflows burn 
+        ON burn.hour = h.hour AND burn.pool_address = p.pool_address
+    FULL OUTER JOIN hourly_swap_flows swap 
+        ON swap.hour = h.hour AND swap.pool_address = p.pool_address
 ),
 token_info AS (
     SELECT
@@ -89,31 +98,37 @@ token_info AS (
         va.decimals
     FROM VerifiedAsset va
 ),
-hourly_prices AS (
+hourly_timestamps as (
     SELECT
-        p.symbol,
-        argMin(price, time) AS price,
-        toStartOfHour(min(time)) AS price_hour
-    FROM __prices__ p
-    INNER JOIN VerifiedAsset va ON p.symbol = lower(va.symbol)
-    WHERE p.time > toDateTime64('2024-08-01 00:00:00', 6, 'UTC')
-    GROUP BY p.symbol, toStartOfHour(p.time)
+        symbol,
+        date_add(hour, 1, date_trunc('hour', time)) as hour,
+        MAX(time) as max_time
+    FROM __prices__
+    GROUP BY symbol, date_trunc('hour', time)
+),
+hourly_prices as (
+    SELECT LOWER(pt.symbol) as symbol, pt.price, hourly_timestamps.hour
+    FROM __prices__ AS pt
+    JOIN hourly_timestamps ON
+        hourly_timestamps.symbol = pt.symbol AND
+        hourly_timestamps.max_time = pt.time
 )
 
 
 SELECT
-    toUnixTimestamp(dnf.day) AS timestamp, -- Day as Unix timestamp
-    formatDateTime(dnf.day, '%Y-%m-%d') AS block_date, -- Day in YYYY-MM-DD format
+    toUnixTimestamp(hnf.hour) AS timestamp, -- Hour as Unix timestamp
+    hnf.hour as hour,
+    formatDateTime(hnf.hour, '%Y-%m-%d') AS block_date, -- Hour in YYYY-MM-DD format
     '9889' AS chain_id, -- Hardcoded chain_id
-    dnf.pool_address,
-    dnf.token_index,
-    dnf.token_address AS token_address,
-    dnf.fee_rate,  -- Fee rate
+    hnf.pool_address,
+    hnf.token_index,
+    hnf.token_address AS token_address,
+    hnf.fee_rate,  -- Fee rate
     0 AS protocol_fees_usd,  -- Dummy column for now
-    dnf.net_flow AS net_flow
+    hnf.net_flow AS net_flow
 
-FROM daily_net_flows dnf  -- Generate snapshots for every date
--- LEFT JOIN daily_net_flows dnf ON d.day = dnf.day AND p.pool_address = dnf.pool_address
+FROM hourly_net_flows hnf  -- Generate snapshots for every date
+-- LEFT JOIN hourly_net_flows hnf ON d.day = hnf.day AND p.pool_address = hnf.pool_address
 -- -- LEFT JOIN token_info ti ON p.token_address = ti.token_address
 -- -- LEFT JOIN hourly_prices hp0 ON hp0.symbol = ti.token_symbol
 -- ORDER BY d.day, p.pool_address;
