@@ -111,7 +111,6 @@ FuelGlobalProcessor
 
         for (const asset of verifiedAssets) {
           const assetChain = asset.networks.find((n) => n.chain === NETWORK_NAME && n.type === 'fuel');
-          console.log(assetChain);
           if (assetChain) {
             ctx.eventLogger.emit('VerifiedAsset', {
               assetId: assetChain.assetId,
