@@ -3,7 +3,7 @@ import { InputType, OutputType, Interface, bn, ReceiptType, ZeroBytes32 } from '
 import { AmmProcessor } from './types/fuel/AmmProcessor.js'
 import { AssetIdInput } from './types/fuel/Amm.js';
 import crypto from 'crypto';
-import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID } from './const.js';
+import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID, NETWORK_ID, NETWORK_NAME } from './const.js';
 import { normalizeTxDate } from './utils.js';
 import { SetDecimalsEventInput, SetNameEventInput, SetSymbolEventInput, Src20, Src20Interface } from './types/fuel/Src20.js';
 import verifiedAssets from './verified-assets.json';
@@ -35,7 +35,7 @@ function getLPAssetId(poolId: PoolId) {
 
 const processor = AmmProcessor.bind({
   address: AMM_CONTRACT_ADDRESS,
-  chainId: FuelNetwork.TEST_NET,
+  chainId: NETWORK_ID,
 });
 
 processor.onLogCreatePoolEvent(async (event, ctx) => {
@@ -92,9 +92,7 @@ processor.onLogBurnEvent(async (event, ctx) => {
 
 
 FuelGlobalProcessor
-  .bind({
-    chainId: FuelNetwork.TEST_NET,
-  })
+  .bind({ chainId: NETWORK_ID })
   .onTransaction(
     async (tx, ctx) => {
       if (tx.blockNumber === '1') {
