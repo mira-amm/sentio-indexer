@@ -1,3 +1,4 @@
+-- Get all hours since the start of time.
 WITH RECURSIVE hours as (
     SELECT
        assetId,
@@ -112,23 +113,46 @@ hourly_prices as (
     JOIN hourly_timestamps ON
         hourly_timestamps.symbol = pt.symbol AND
         hourly_timestamps.max_time = pt.time
+),
+-- Attach price and symbol info to hourly net flows
+hourly_token_net_flows AS (
+    SELECT
+        hnf.hour as hour,
+        hnf.pool_address,
+        hnf.fee_rate,  -- Fee rate
+        0 AS protocol_fees_usd,  -- Dummy column for now
+        hnf.net_flow AS net_flow,
+        hnf.token_address,
+        hnf.token_index,
+        ti.token_symbol,
+        ti.decimals,
+        hp.price
+    FROM hourly_net_flows hnf
+    JOIN token_info ti
+    ON hnf.token_address = ti.token_address
+    JOIN hourly_prices hp
+    ON ti.token_symbol = hp.symbol AND hnf.hour = hp.hour
+),
+-- Calculate net flows in USD at the pool level
+hourly_pool_net_flows_usd as (
+    SELECT
+        htnf.hour,
+        htnf.pool_address,
+        AVG(htnf.fee_rate) as avg_fee_rate,
+        AVG(htnf.protocol_fees_usd) as protocol_fees_usd,
+        SUM(htnf.net_flow / POWER(10, htnf.decimals) * htnf.price) AS net_flow_usd
+    FROM hourly_token_net_flows htnf
+    GROUP BY hour, pool_address
 )
 
-
+-- Turn net flows into cumulative net flows
 SELECT
-    toUnixTimestamp(hnf.hour) AS timestamp, -- Hour as Unix timestamp
-    hnf.hour as hour,
-    formatDateTime(hnf.hour, '%Y-%m-%d') AS block_date, -- Hour in YYYY-MM-DD format
-    '9889' AS chain_id, -- Hardcoded chain_id
-    hnf.pool_address,
-    hnf.token_index,
-    hnf.token_address AS token_address,
-    hnf.fee_rate,  -- Fee rate
-    0 AS protocol_fees_usd,  -- Dummy column for now
-    hnf.net_flow AS net_flow
+    hour,
+    pool_address,
+    avg_fee_rate,
+    protocol_fees_usd,
+    SUM(net_flow_usd) OVER (PARTITION BY pool_address ORDER BY hour) as cumulative_net_flow_usd
+FROM hourly_pool_net_flows_usd
+ORDER BY hour, pool_address;
 
-FROM hourly_net_flows hnf  -- Generate snapshots for every date
--- LEFT JOIN hourly_net_flows hnf ON d.day = hnf.day AND p.pool_address = hnf.pool_address
--- -- LEFT JOIN token_info ti ON p.token_address = ti.token_address
--- -- LEFT JOIN hourly_prices hp0 ON hp0.symbol = ti.token_symbol
--- ORDER BY d.day, p.pool_address;
+
