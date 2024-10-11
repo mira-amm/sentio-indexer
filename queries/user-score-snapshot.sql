@@ -1,4 +1,23 @@
-WITH lp_tokens AS (
+-- Query below gets cumulative balances of lp token for each user
+-- for each pool for all time.
+WITH RECURSIVE hours as (
+    SELECT
+       assetId,
+       distinct_id,
+       MIN(DATE_TRUNC('hour', timestamp)) AS hour
+    FROM assetBalance
+    GROUP BY distinct_id, assetId
+
+    UNION ALL
+
+    SELECT
+        assetId,
+        distinct_id,
+        uh.hour + INTERVAL '1 hour'
+    FROM hours uh
+    WHERE uh.hour + INTERVAL '1 hour' <= CURRENT_TIMESTAMP()   
+),
+lp_tokens AS (
     SELECT
         pc.lpAssetId AS pool_address,  -- Use lpAssetId as the pool address
         pc.token0 AS token_0_address,
@@ -10,44 +29,43 @@ parsed_balances AS (
     SELECT
         ab.distinct_id AS user_address,
         ab.assetId AS asset_id,
-        toUnixTimestamp(ab.timestamp) AS timestamp,  -- Full timestamp for daily snapshot
-        toDate(ab.timestamp) AS block_date,          -- Truncated timestamp (YYYY-MM-DD format)
+        DATE_TRUNC('hour', ab.timestamp) AS hour,          -- Truncated hour
         ab.block_number AS block_number,
         CAST(ab.amount AS Decimal(38, 18)) AS delta_amount  -- Convert amount to Decimal
     FROM assetBalance ab
     WHERE ab.assetId IN (SELECT pool_address FROM lp_tokens)  -- Only include LP tokens
 ),
-daily_balances AS (
+hourly_balances AS (
     SELECT
         pb.user_address,
         pb.asset_id AS pool_address,
-        pb.timestamp,
-        pb.block_date,
-        pb.block_number,
-        SUM(pb.delta_amount) AS daily_delta
+        pb.hour,
+        SUM(pb.delta_amount) AS hourly_delta
     FROM parsed_balances pb
-    GROUP BY pb.user_address, pb.asset_id, pb.timestamp, pb.block_date, pb.block_number
+    GROUP BY pb.user_address, pb.asset_id, pb.hour
+),
+hourly_balances_filled AS (
+    SELECT
+        h.distinct_id as user_address,
+        h.hour,
+        COALESCE(h.assetId, hb.pool_address) as pool_address,
+        COALESCE(hb.hourly_delta, 0.0) AS hourly_delta
+    FROM hours h
+    LEFT JOIN hourly_balances hb
+    ON
+        h.distinct_id = hb.user_address AND
+        h.hour = hb.hour AND
+        h.assetId = hb.pool_address
 ),
 cumulative_balances AS (
     SELECT
         user_address,
         pool_address,
-        timestamp,
-        block_date,
-        block_number,
-        SUM(daily_delta) OVER (PARTITION BY user_address, pool_address ORDER BY block_date) AS current_liquidity_position
-    FROM daily_balances
+        hour,
+        SUM(hourly_delta) OVER (PARTITION BY user_address, pool_address ORDER BY hour) AS current_liquidity_position
+    FROM hourly_balances_filled
 )
-SELECT
-    cb.timestamp,  -- Full timestamp
-    formatDateTime(cb.block_date, '%Y-%m-%d') AS block_date,  -- YYYY-MM-DD format
-    lt.chain_id,  -- Chain ID from the LP token
-    cb.block_number,
-    cb.user_address,
-    cb.pool_address,  -- LP token address as the pool address
-    0.0 AS market_depth_score,  -- Placeholder for market depth score
-    cb.current_liquidity_position AS total_value_locked_score  -- Use the cumulative liquidity position for TVL score
-FROM cumulative_balances cb
-JOIN lp_tokens lt ON cb.pool_address = lt.pool_address
-WHERE cb.current_liquidity_position != 0  -- Only show non-zero positions
-ORDER BY cb.timestamp, cb.pool_address;
+
+select * from cumulative_balances
+WHERE current_liquidity_position > 0
+ORDER BY hour asc;
