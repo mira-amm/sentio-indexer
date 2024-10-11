@@ -1,3 +1,4 @@
+-- Get all hours since the start of time for user LP tokens over time.
 WITH RECURSIVE hours as (
     SELECT
        assetId,
@@ -15,6 +16,7 @@ WITH RECURSIVE hours as (
     FROM hours uh
     WHERE uh.hour + INTERVAL '1 hour' <= CURRENT_TIMESTAMP()   
 ),
+-- Get all hours since the start of time for pool lp token pricing.
 time_range AS (
     SELECT
         addHours(toDate(start_date), number) AS hour
@@ -23,7 +25,7 @@ time_range AS (
     ) as date_range
     ARRAY JOIN range(dateDiff('hour', start_date, today())) AS number
 ),
-
+-- Get hourly prices for verified assets for pool token pricing.
 hourly_prices AS (
     SELECT
         p.symbol,
@@ -34,7 +36,7 @@ hourly_prices AS (
     WHERE p.time > toDateTime64('2024-08-01 00:00:00', 6, 'UTC')
     GROUP BY p.symbol, toStartOfHour(p.time)
 ),
-
+-- Get all pool info
 pools AS (
     SELECT
         pc.poolId AS pool_id,
@@ -50,7 +52,7 @@ pools AS (
     JOIN VerifiedAsset a0 ON pc.token0 = a0.assetId
     JOIN VerifiedAsset a1 ON pc.token1 = a1.assetId
 ),
-
+-- Hourly pool data
 hourly_pools AS (
     SELECT
         time.hour,
@@ -96,7 +98,7 @@ swap_agg AS (
     FROM Swap s
     GROUP BY hour, poolId
 ),
-
+-- Token flows per pool per hour
 hourly_pool_aggregated AS (
     SELECT
         p.hour,
@@ -126,7 +128,7 @@ hourly_pool_aggregated AS (
     ORDER BY
         p.hour, p.pool_id
 ),
-
+-- Token flows, cumulative, over the hour.
 hourly_pool_snapshot AS (
     SELECT
         p.hour AS hour,
@@ -142,7 +144,7 @@ hourly_pool_snapshot AS (
     ORDER BY
         p.hour, p.pool_id
 ),
-
+-- Priced hourly pool snapshots.
 hourly_pool_snapshot_priced AS (
     SELECT
         p.*,
@@ -155,6 +157,7 @@ hourly_pool_snapshot_priced AS (
     WHERE
         p.lp_supply > 0 -- Otherwise we get divide by 0 errors
 ),
+-- LP Tokens to get user information
 lp_tokens AS (
     SELECT
         pc.lpAssetId AS pool_address,  -- Use lpAssetId as the pool address
@@ -163,6 +166,7 @@ lp_tokens AS (
         '9889' AS chain_id  -- Assuming chain_id is constant
     FROM PairCreated pc
 ),
+-- User LP token changes over time
 parsed_balances AS (
     SELECT
         ab.distinct_id AS user_address,
@@ -182,6 +186,7 @@ hourly_balances AS (
     FROM parsed_balances pb
     GROUP BY pb.user_address, pb.asset_id, pb.hour
 ),
+-- Filled user lp token position changes per hour
 hourly_balances_filled AS (
     SELECT
         h.distinct_id as user_address,
@@ -195,6 +200,7 @@ hourly_balances_filled AS (
         h.hour = hb.hour AND
         h.assetId = hb.pool_address
 ),
+-- Cumulative user LP token positions over time
 cumulative_balances AS (
     SELECT
         user_address,
@@ -204,6 +210,7 @@ cumulative_balances AS (
     FROM hourly_balances_filled
 )
 
+-- Calculate user scores
 SELECT
     cb.user_address,
     cb.pool_address,
