@@ -1,29 +1,27 @@
--- Get all hours since the start of time for user LP tokens over time.
-WITH RECURSIVE hours as (
-    SELECT
-       assetId,
-       distinct_id,
-       MIN(DATE_TRUNC('hour', timestamp)) AS hour
-    FROM assetBalance
-    GROUP BY distinct_id, assetId
-
-    UNION ALL
-
-    SELECT
-        assetId,
-        distinct_id,
-        uh.hour + INTERVAL '1 hour'
-    FROM hours uh
-    WHERE uh.hour + INTERVAL '1 hour' <= CURRENT_TIMESTAMP()   
-),
 -- Get all hours since the start of time for pool lp token pricing.
-time_range AS (
+WITH time_range AS (
     SELECT
         addHours(toDate(start_date), number) AS hour
     FROM (
         SELECT toDate(min(m.timestamp)) AS start_date FROM Mint m  -- Start date from the first mint event
     ) as date_range
     ARRAY JOIN range(dateDiff('hour', start_date, today())) AS number
+),-- Get all first hours since the start of time for user LP tokens over time.
+first_asset_hours as (
+    SELECT
+       assetId,
+       distinct_id,
+       MIN(DATE_TRUNC('hour', timestamp)) AS hour
+    FROM assetBalance
+    GROUP BY distinct_id, assetId
+),
+hours as (
+    SELECT
+        fah.distinct_id,
+        fah.assetId,
+        tr.hour
+    FROM time_range tr
+    CROSS JOIN first_asset_hours fah
 ),
 -- Get hourly prices for verified assets for pool token pricing.
 hourly_prices AS (
