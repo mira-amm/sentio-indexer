@@ -1,0 +1,13 @@
+type Pool @entity {
+  id: ID!
+  asset0: String!
+  asset1: String!
+  isStable: Boolean!
+  lpToken: String!
+
+  reserve0: BigInt!
+  reserve1: BigInt!
+
+  volumeAsset0: BigInt!
+  volumeAsset1: BigInt!
+}

@@ -7,6 +7,7 @@ import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID, NETWORK_ID, NETWORK_NAME } from '.
 import { normalizeTxDate } from './utils.js';
 import { SetDecimalsEventInput, SetNameEventInput, SetSymbolEventInput, Src20, Src20Interface } from './types/fuel/Src20.js';
 import verifiedAssets from './verified-assets.json';
+import { Pool } from './schema/store.js';
 
 const setNameEventId = "7845998088195677205";
 const setSymbolEventId = "12152039456660331088";
@@ -48,6 +49,21 @@ processor.onLogCreatePoolEvent(async (event, ctx) => {
       stable: event.data.pool_id[2],
       lpAssetId: getLPAssetId(event.data.pool_id),
     });
+
+    const pool = new Pool({
+      id: poolIdToStr(event.data.pool_id),
+      asset0: event.data.pool_id[0].bits,
+      asset1: event.data.pool_id[1].bits,
+      isStable: event.data.pool_id[2],
+      lpToken: getLPAssetId(event.data.pool_id),
+
+      reserve0: 0n,
+      reserve1: 0n,
+
+      volumeAsset0: 0n,
+      volumeAsset1: 0n,
+    });
+    ctx.store.upsert(pool);
   }
 });
 
@@ -61,6 +77,13 @@ processor.onLogSwapEvent(async (event, ctx) => {
       token1Out: event.data.asset_1_out,
       recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
     });
+
+    const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
+    pool.reserve0 += BigInt(event.data.asset_0_in.toString()) - BigInt(event.data.asset_0_out.toString());
+    pool.reserve1 += BigInt(event.data.asset_1_in.toString()) - BigInt(event.data.asset_1_out.toString());
+    pool.volumeAsset0 += BigInt(event.data.asset_0_in.toString()) + BigInt(event.data.asset_0_out.toString());
+    pool.volumeAsset1 += BigInt(event.data.asset_1_in.toString()) + BigInt(event.data.asset_1_out.toString());
+    ctx.store.upsert(pool);
   }
 });
 
@@ -74,6 +97,11 @@ processor.onLogMintEvent(async (event, ctx) => {
       recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
       lpAssetId: event.data.liquidity.id.bits,
     });
+
+    const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
+    pool.reserve0 += BigInt(event.data.asset_0_in.toString());
+    pool.reserve1 += BigInt(event.data.asset_1_in.toString());
+    ctx.store.upsert(pool);
   }
 });
 
@@ -87,6 +115,11 @@ processor.onLogBurnEvent(async (event, ctx) => {
       recipient: event.data.recipient.Address?.bits || event.data.recipient.ContractId?.bits,
       lpAssetId: event.data.liquidity.id.bits,
     });
+
+    const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
+    pool.reserve0 -= BigInt(event.data.asset_0_out.toString());
+    pool.reserve1 -= BigInt(event.data.asset_1_out.toString());
+    ctx.store.upsert(pool);
   }
 });
 
