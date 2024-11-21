@@ -1,13 +1,12 @@
-import { FuelGlobalProcessor, FuelNetwork, FuelProcessor } from '@sentio/sdk/fuel';
+import { FuelGlobalProcessor } from '@sentio/sdk/fuel';
 import { InputType, OutputType, Interface, bn, ReceiptType, ZeroBytes32 } from 'fuels';
 import { AmmProcessor } from './types/fuel/AmmProcessor.js'
-import { AssetIdInput } from './types/fuel/Amm.js';
-import crypto from 'crypto';
 import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID, NETWORK_ID, NETWORK_NAME } from './const.js';
-import { normalizeTxDate } from './utils.js';
+import { getLPAssetId, normalizeTxDate, poolIdToStr } from './utils.js';
 import { SetDecimalsEventInput, SetNameEventInput, SetSymbolEventInput, Src20, Src20Interface } from './types/fuel/Src20.js';
 import verifiedAssets from './verified-assets.json';
 import { Pool } from './schema/store.js';
+import { getPoolSnapshot, newPool } from './entities.js';
 
 const setNameEventId = "7845998088195677205";
 const setSymbolEventId = "12152039456660331088";
@@ -17,22 +16,7 @@ const src20Interface = new Interface(Src20.abi);
 
 const ETH_ASSET_ID = '0xf8f8b6283d7fa5b672b530cbb84fcccb4ff8dc40f8176ef4544ddb1f1952ad07';
 
-type PoolId = [AssetIdInput, AssetIdInput, boolean];
-
-const poolIdToStr = (poolId: PoolId) => `${poolId[0].bits.slice(2)}-${poolId[1].bits.slice(2)}-${poolId[2]}`;
-
 // const sha256 = (str: string) => crypto.createHash('sha256').update(str).digest('hex');
-
-function getLPAssetId(poolId: PoolId) {
-  const contractBuffer = Buffer.from(AMM_CONTRACT_ADDRESS.slice(2), 'hex');
-  const subId = crypto.createHash('sha256')
-    .update(Buffer.from(poolId[0].bits.slice(2), 'hex'))
-    .update(Buffer.from(poolId[1].bits.slice(2), 'hex'))
-    .update(Buffer.from(poolId[2] ? '01' : '00', 'hex'))
-    .digest();
-
-  return '0x' + crypto.createHash('sha256').update(contractBuffer).update(subId).digest('hex');
-}
 
 const processor = AmmProcessor.bind({
   address: AMM_CONTRACT_ADDRESS,
@@ -50,20 +34,7 @@ processor.onLogCreatePoolEvent(async (event, ctx) => {
       lpAssetId: getLPAssetId(event.data.pool_id),
     });
 
-    const pool = new Pool({
-      id: poolIdToStr(event.data.pool_id),
-      asset0: event.data.pool_id[0].bits,
-      asset1: event.data.pool_id[1].bits,
-      isStable: event.data.pool_id[2],
-      lpToken: getLPAssetId(event.data.pool_id),
-
-      reserve0: 0n,
-      reserve1: 0n,
-
-      volumeAsset0: 0n,
-      volumeAsset1: 0n,
-    });
-    ctx.store.upsert(pool);
+    await newPool(event.data.pool_id, ctx);
   }
 });
 
@@ -79,11 +50,18 @@ processor.onLogSwapEvent(async (event, ctx) => {
     });
 
     const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
-    pool.reserve0 += BigInt(event.data.asset_0_in.toString()) - BigInt(event.data.asset_0_out.toString());
+    pool.reserve0 = pool.reserve0 + BigInt(event.data.asset_0_in.toString()) - BigInt(event.data.asset_0_out.toString());
     pool.reserve1 += BigInt(event.data.asset_1_in.toString()) - BigInt(event.data.asset_1_out.toString());
     pool.volumeAsset0 += BigInt(event.data.asset_0_in.toString()) + BigInt(event.data.asset_0_out.toString());
     pool.volumeAsset1 += BigInt(event.data.asset_1_in.toString()) + BigInt(event.data.asset_1_out.toString());
-    ctx.store.upsert(pool);
+    await ctx.store.upsert(pool);
+
+    const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
+    snapshot.reserve0 = pool.reserve0;
+    snapshot.reserve1 = pool.reserve1;
+    snapshot.volumeAsset0 += BigInt(event.data.asset_0_in.toString()) + BigInt(event.data.asset_0_out.toString());
+    snapshot.volumeAsset1 += BigInt(event.data.asset_1_in.toString()) + BigInt(event.data.asset_1_out.toString());
+    await ctx.store.upsert(snapshot);
   }
 });
 
@@ -101,7 +79,12 @@ processor.onLogMintEvent(async (event, ctx) => {
     const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
     pool.reserve0 += BigInt(event.data.asset_0_in.toString());
     pool.reserve1 += BigInt(event.data.asset_1_in.toString());
-    ctx.store.upsert(pool);
+    await ctx.store.upsert(pool);
+
+    const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
+    snapshot.reserve0 = pool.reserve0;
+    snapshot.reserve1 = pool.reserve1;
+    await ctx.store.upsert(snapshot);
   }
 });
 
@@ -119,7 +102,12 @@ processor.onLogBurnEvent(async (event, ctx) => {
     const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
     pool.reserve0 -= BigInt(event.data.asset_0_out.toString());
     pool.reserve1 -= BigInt(event.data.asset_1_out.toString());
-    ctx.store.upsert(pool);
+    await ctx.store.upsert(pool);
+
+    const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
+    snapshot.reserve0 = pool.reserve0;
+    snapshot.reserve1 = pool.reserve1;
+    await ctx.store.upsert(snapshot);
   }
 });
 

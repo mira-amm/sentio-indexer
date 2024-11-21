@@ -50,7 +50,46 @@ export class Pool extends AbstractEntity  {
 	@Required
 	@Column("BigInt")
 	volumeAsset1: BigInt
+
+	@Required
+	@Column("Int")
+	mostRecentSnapshot: Int
   constructor(data: Partial<Pool>) {super()}
+}
+
+@Entity("PoolSnapshot")
+export class PoolSnapshot extends AbstractEntity  {
+
+	@Required
+	@Column("ID")
+	id: ID
+
+	@Required
+	@One("Pool")
+	pool: Promise<Pool>
+
+	poolID: ID
+
+	@Required
+	@Column("Int")
+	timestamp: Int
+
+	@Required
+	@Column("BigInt")
+	reserve0: BigInt
+
+	@Required
+	@Column("BigInt")
+	reserve1: BigInt
+
+	@Required
+	@Column("BigInt")
+	volumeAsset0: BigInt
+
+	@Required
+	@Column("BigInt")
+	volumeAsset1: BigInt
+  constructor(data: Partial<PoolSnapshot>) {super()}
 }
 
 
@@ -66,11 +105,24 @@ const source = `type Pool @entity {
 
   volumeAsset0: BigInt!
   volumeAsset1: BigInt!
+
+  mostRecentSnapshot: Int!
+}
+
+type PoolSnapshot @entity {
+  id: ID!
+  pool: Pool!
+  timestamp: Int!
+  reserve0: BigInt!
+  reserve1: BigInt!
+  volumeAsset0: BigInt!
+  volumeAsset1: BigInt!
 }
 `
 DatabaseSchema.register({
   source,
   entities: {
-    "Pool": Pool
+    "Pool": Pool,
+		"PoolSnapshot": PoolSnapshot
   }
 })

@@ -10,4 +10,16 @@ type Pool @entity {
 
   volumeAsset0: BigInt!
   volumeAsset1: BigInt!
+
+  mostRecentSnapshot: Int!
+}
+
+type PoolSnapshot @entity {
+  id: ID!
+  pool: Pool!
+  timestamp: Int!
+  reserve0: BigInt!
+  reserve1: BigInt!
+  volumeAsset0: BigInt!
+  volumeAsset1: BigInt!
 }
