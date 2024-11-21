@@ -11,6 +11,7 @@ export async function newPool(poolId: PoolId, ctx: FuelContractContext<Amm>) {
     isStable: poolId[2],
     lpToken: getLPAssetId(poolId),
 
+    lpTokenSupply: 0n,
     reserve0: 0n,
     reserve1: 0n,
 

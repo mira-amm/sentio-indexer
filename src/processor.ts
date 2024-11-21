@@ -79,11 +79,13 @@ processor.onLogMintEvent(async (event, ctx) => {
     const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
     pool.reserve0 += BigInt(event.data.asset_0_in.toString());
     pool.reserve1 += BigInt(event.data.asset_1_in.toString());
+    pool.lpTokenSupply += BigInt(event.data.liquidity.amount.toString());
     await ctx.store.upsert(pool);
 
     const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
     snapshot.reserve0 = pool.reserve0;
     snapshot.reserve1 = pool.reserve1;
+    snapshot.lpTokenSupply = pool.lpTokenSupply;
     await ctx.store.upsert(snapshot);
   }
 });
@@ -102,11 +104,13 @@ processor.onLogBurnEvent(async (event, ctx) => {
     const pool = (await ctx.store.get(Pool, poolIdToStr(event.data.pool_id)))!;
     pool.reserve0 -= BigInt(event.data.asset_0_out.toString());
     pool.reserve1 -= BigInt(event.data.asset_1_out.toString());
+    pool.lpTokenSupply -= BigInt(event.data.liquidity.amount.toString());
     await ctx.store.upsert(pool);
 
     const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
     snapshot.reserve0 = pool.reserve0;
     snapshot.reserve1 = pool.reserve1;
+    snapshot.lpTokenSupply = pool.lpTokenSupply;
     await ctx.store.upsert(snapshot);
   }
 });

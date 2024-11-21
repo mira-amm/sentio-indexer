@@ -37,6 +37,10 @@ export class Pool extends AbstractEntity  {
 
 	@Required
 	@Column("BigInt")
+	lpTokenSupply: BigInt
+
+	@Required
+	@Column("BigInt")
 	reserve0: BigInt
 
 	@Required
@@ -76,6 +80,10 @@ export class PoolSnapshot extends AbstractEntity  {
 
 	@Required
 	@Column("BigInt")
+	lpTokenSupply: BigInt
+
+	@Required
+	@Column("BigInt")
 	reserve0: BigInt
 
 	@Required
@@ -100,6 +108,8 @@ const source = `type Pool @entity {
   isStable: Boolean!
   lpToken: String!
 
+  lpTokenSupply: BigInt!
+
   reserve0: BigInt!
   reserve1: BigInt!
 
@@ -113,6 +123,7 @@ type PoolSnapshot @entity {
   id: ID!
   pool: Pool!
   timestamp: Int!
+  lpTokenSupply: BigInt!
   reserve0: BigInt!
   reserve1: BigInt!
   volumeAsset0: BigInt!
