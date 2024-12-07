@@ -54,14 +54,15 @@ processor.onLogSwapEvent(async (event, ctx) => {
     pool.reserve1 += BigInt(event.data.asset_1_in.toString()) - BigInt(event.data.asset_1_out.toString());
     pool.volumeAsset0 += BigInt(event.data.asset_0_in.toString()) + BigInt(event.data.asset_0_out.toString());
     pool.volumeAsset1 += BigInt(event.data.asset_1_in.toString()) + BigInt(event.data.asset_1_out.toString());
-    await ctx.store.upsert(pool);
 
     const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
+    snapshot.transactions += 1;
     snapshot.reserve0 = pool.reserve0;
     snapshot.reserve1 = pool.reserve1;
     snapshot.volumeAsset0 += BigInt(event.data.asset_0_in.toString()) + BigInt(event.data.asset_0_out.toString());
     snapshot.volumeAsset1 += BigInt(event.data.asset_1_in.toString()) + BigInt(event.data.asset_1_out.toString());
     await ctx.store.upsert(snapshot);
+    await ctx.store.upsert(pool);
   }
 });
 
@@ -80,13 +81,14 @@ processor.onLogMintEvent(async (event, ctx) => {
     pool.reserve0 += BigInt(event.data.asset_0_in.toString());
     pool.reserve1 += BigInt(event.data.asset_1_in.toString());
     pool.lpTokenSupply += BigInt(event.data.liquidity.amount.toString());
-    await ctx.store.upsert(pool);
 
     const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
+    snapshot.transactions += 1;
     snapshot.reserve0 = pool.reserve0;
     snapshot.reserve1 = pool.reserve1;
     snapshot.lpTokenSupply = pool.lpTokenSupply;
     await ctx.store.upsert(snapshot);
+    await ctx.store.upsert(pool);
   }
 });
 
@@ -105,13 +107,14 @@ processor.onLogBurnEvent(async (event, ctx) => {
     pool.reserve0 -= BigInt(event.data.asset_0_out.toString());
     pool.reserve1 -= BigInt(event.data.asset_1_out.toString());
     pool.lpTokenSupply -= BigInt(event.data.liquidity.amount.toString());
-    await ctx.store.upsert(pool);
 
     const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
+    snapshot.transactions += 1;
     snapshot.reserve0 = pool.reserve0;
     snapshot.reserve1 = pool.reserve1;
     snapshot.lpTokenSupply = pool.lpTokenSupply;
     await ctx.store.upsert(snapshot);
+    await ctx.store.upsert(pool);
   }
 });
 

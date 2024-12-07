@@ -40,6 +40,10 @@ export class Pool extends AbstractEntity  {
 	lpTokenSupply: BigInt
 
 	@Required
+	@Column("Float")
+	lpTokenSupplyDecimal: Float
+
+	@Required
 	@Column("BigInt")
 	reserve0: BigInt
 
@@ -48,12 +52,28 @@ export class Pool extends AbstractEntity  {
 	reserve1: BigInt
 
 	@Required
+	@Column("Float")
+	reserve0Decimal: Float
+
+	@Required
+	@Column("Float")
+	reserve1Decimal: Float
+
+	@Required
 	@Column("BigInt")
 	volumeAsset0: BigInt
 
 	@Required
 	@Column("BigInt")
 	volumeAsset1: BigInt
+
+	@Required
+	@Column("Float")
+	volumeAsset0Decimal: Float
+
+	@Required
+	@Column("Float")
+	volumeAsset1Decimal: Float
 
 	@Required
 	@Column("Int")
@@ -83,6 +103,14 @@ export class PoolSnapshot extends AbstractEntity  {
 	lpTokenSupply: BigInt
 
 	@Required
+	@Column("Float")
+	lpTokenSupplyDecimal: Float
+
+	@Required
+	@Column("Int")
+	transactions: Int
+
+	@Required
 	@Column("BigInt")
 	reserve0: BigInt
 
@@ -91,12 +119,28 @@ export class PoolSnapshot extends AbstractEntity  {
 	reserve1: BigInt
 
 	@Required
+	@Column("Float")
+	reserve0Decimal: Float
+
+	@Required
+	@Column("Float")
+	reserve1Decimal: Float
+
+	@Required
 	@Column("BigInt")
 	volumeAsset0: BigInt
 
 	@Required
 	@Column("BigInt")
 	volumeAsset1: BigInt
+
+	@Required
+	@Column("Float")
+	volumeAsset0Decimal: Float
+
+	@Required
+	@Column("Float")
+	volumeAsset1Decimal: Float
   constructor(data: Partial<PoolSnapshot>) {super()}
 }
 
@@ -109,12 +153,17 @@ const source = `type Pool @entity {
   lpToken: String!
 
   lpTokenSupply: BigInt!
+  lpTokenSupplyDecimal: Float!
 
   reserve0: BigInt!
   reserve1: BigInt!
+  reserve0Decimal: Float!
+  reserve1Decimal: Float!
 
   volumeAsset0: BigInt!
   volumeAsset1: BigInt!
+  volumeAsset0Decimal: Float!
+  volumeAsset1Decimal: Float!
 
   mostRecentSnapshot: Int!
 }
@@ -124,10 +173,19 @@ type PoolSnapshot @entity {
   pool: Pool!
   timestamp: Int!
   lpTokenSupply: BigInt!
+  lpTokenSupplyDecimal: Float!
+
+  transactions: Int!
+
   reserve0: BigInt!
   reserve1: BigInt!
+  reserve0Decimal: Float!
+  reserve1Decimal: Float!
+
   volumeAsset0: BigInt!
   volumeAsset1: BigInt!
+  volumeAsset0Decimal: Float!
+  volumeAsset1Decimal: Float!
 }
 `
 DatabaseSchema.register({

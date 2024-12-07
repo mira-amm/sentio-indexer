@@ -6,12 +6,17 @@ type Pool @entity {
   lpToken: String!
 
   lpTokenSupply: BigInt!
+  lpTokenSupplyDecimal: Float!
 
   reserve0: BigInt!
   reserve1: BigInt!
+  reserve0Decimal: Float!
+  reserve1Decimal: Float!
 
   volumeAsset0: BigInt!
   volumeAsset1: BigInt!
+  volumeAsset0Decimal: Float!
+  volumeAsset1Decimal: Float!
 
   mostRecentSnapshot: Int!
 }
@@ -21,8 +26,17 @@ type PoolSnapshot @entity {
   pool: Pool!
   timestamp: Int!
   lpTokenSupply: BigInt!
+  lpTokenSupplyDecimal: Float!
+
+  transactions: Int!
+
   reserve0: BigInt!
   reserve1: BigInt!
+  reserve0Decimal: Float!
+  reserve1Decimal: Float!
+
   volumeAsset0: BigInt!
   volumeAsset1: BigInt!
+  volumeAsset0Decimal: Float!
+  volumeAsset1Decimal: Float!
 }
