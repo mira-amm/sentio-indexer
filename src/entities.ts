@@ -46,6 +46,9 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
       volumeAsset0: 0n,
       volumeAsset1: 0n,
     });
+
+    pool.mostRecentSnapshot = currentSnapshotTimestamp;
+
     return snapshot;
   } else if (pool.mostRecentSnapshot == currentSnapshotTimestamp) {
     const _snapshot = await ctx.store.get(PoolSnapshot, currentSnapshotId);
@@ -57,7 +60,6 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
     let snapshot: PoolSnapshot;
 
     for (let timestamp = pool.mostRecentSnapshot; timestamp <= currentSnapshotTimestamp; timestamp += HOUR_S) {
-      console.log(`Creating snapshot at ${timestamp}`);
       const snapshotId = `${pool.id}-${timestamp}`;
       snapshot = new PoolSnapshot({
         id: snapshotId,
@@ -76,7 +78,6 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
         volumeAsset0: 0n,
         volumeAsset1: 0n,
       });
-      console.log(`Prev lp: ${pool.lpTokenSupply}, snap: ${snapshot.lpTokenSupply}`);
       await ctx.store.upsert(snapshot);
     }
 
