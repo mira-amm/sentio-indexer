@@ -118,6 +118,13 @@ processor.onLogBurnEvent(async (event, ctx) => {
   }
 });
 
+processor.onTimeInterval(async (block, ctx) => {
+  const poolGen = ctx.store.listIterator(Pool, []);
+  for await (const pool of poolGen) {
+    const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
+    await ctx.store.upsert(snapshot);
+  }
+}, 60, 60);
 
 FuelGlobalProcessor
   .bind({ chainId: NETWORK_ID })
