@@ -4,7 +4,7 @@ import { AmmProcessor } from './types/fuel/AmmProcessor.js'
 import { AMM_CONTRACT_ADDRESS, BASE_ASSET_ID, NETWORK_ID, NETWORK_NAME } from './const.js';
 import { getLPAssetId, normalizeTxDate, poolIdToStr } from './utils.js';
 import { SetDecimalsEventInput, SetNameEventInput, SetSymbolEventInput, Src20, Src20Interface } from './types/fuel/Src20.js';
-import verifiedAssets from './verified-assets.json';
+import verifiedAssets from './verified-assets.json' assert { type: 'json' };
 import { Pool } from './schema/store.js';
 import { getPoolSnapshot, newPool } from './entities.js';
 
