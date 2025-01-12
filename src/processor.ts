@@ -1,4 +1,4 @@
-import { FuelContractContext, FuelGlobalProcessor } from "@sentio/sdk/fuel";
+import { FuelContractContext, FuelGlobalProcessor, FuelAbstractProcessor } from "@sentio/sdk/fuel";
 import {
   InputType,
   OutputType,
@@ -22,7 +22,7 @@ import {
   Src20,
   Src20Interface,
 } from "./types/fuel/Src20.js";
-import verifiedAssets from "./verified-assets.json";
+import verifiedAssets from "./verified-assets.json" assert { type: 'json' };
 import { Pool } from "./schema/store.js";
 import { getPoolSnapshot, newPool } from "./entities.js";
 import { Amm } from "./types/fuel/Amm.js";
