@@ -12,6 +12,25 @@ import { DatabaseSchema } from '@sentio/sdk'
 
 
 
+
+interface PoolConstructorInput {
+  id: ID;
+  asset0: String;
+  asset1: String;
+  isStable: Boolean;
+  lpToken: String;
+  lpTokenSupply: BigInt;
+  lpTokenSupplyDecimal: Float;
+  reserve0: BigInt;
+  reserve1: BigInt;
+  reserve0Decimal: Float;
+  reserve1Decimal: Float;
+  volumeAsset0: BigInt;
+  volumeAsset1: BigInt;
+  volumeAsset0Decimal: Float;
+  volumeAsset1Decimal: Float;
+  mostRecentSnapshot: Int;
+}
 @Entity("Pool")
 export class Pool extends AbstractEntity  {
 
@@ -78,9 +97,27 @@ export class Pool extends AbstractEntity  {
 	@Required
 	@Column("Int")
 	mostRecentSnapshot: Int
-  constructor(data: Partial<Pool>) {super()}
+  constructor(data: PoolConstructorInput) {super()}
+  
 }
 
+
+interface PoolSnapshotConstructorInput {
+  id: ID;
+  poolID?: ID;
+  timestamp: Int;
+  lpTokenSupply: BigInt;
+  lpTokenSupplyDecimal: Float;
+  transactions: Int;
+  reserve0: BigInt;
+  reserve1: BigInt;
+  reserve0Decimal: Float;
+  reserve1Decimal: Float;
+  volumeAsset0: BigInt;
+  volumeAsset1: BigInt;
+  volumeAsset0Decimal: Float;
+  volumeAsset1Decimal: Float;
+}
 @Entity("PoolSnapshot")
 export class PoolSnapshot extends AbstractEntity  {
 
@@ -90,7 +127,7 @@ export class PoolSnapshot extends AbstractEntity  {
 
 	@Required
 	@One("Pool")
-	pool: Promise<Pool>
+	_pool: Promise<Pool>
 
 	poolID: ID
 
@@ -141,7 +178,15 @@ export class PoolSnapshot extends AbstractEntity  {
 	@Required
 	@Column("Float")
 	volumeAsset1Decimal: Float
-  constructor(data: Partial<PoolSnapshot>) {super()}
+  constructor(data: PoolSnapshotConstructorInput) {super()}
+  
+  pool(): Promise<Pool> {
+    return this._pool
+  }
+
+  setPool(pool: Pool) {
+    if (pool) this.poolID = pool.id
+  }
 }
 
 
