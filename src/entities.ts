@@ -18,7 +18,7 @@ export async function newPool(poolId: PoolId, ctx: FuelContractContext<Amm>) {
     volumeAsset0: 0n,
     volumeAsset1: 0n,
   });
-  ctx.store.upsert(pool);
+  await ctx.store.upsert(pool);
 }
 
 const HOUR_MS = 60 * 60 * 1000;

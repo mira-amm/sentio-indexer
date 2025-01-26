@@ -22,7 +22,7 @@ import {
   Src20,
   Src20Interface,
 } from "./types/fuel/Src20.js";
-import verifiedAssets from "./verified-assets.json";
+import verifiedAssets from "./verified-assets.json" assert { type: 'json' };
 import { Pool } from "./schema/store.js";
 import { getPoolSnapshot, newPool } from "./entities.js";
 import { Amm } from "./types/fuel/Amm.js";
@@ -43,9 +43,8 @@ const getOrCreatePool = async (
   ctx: FuelContractContext<Amm>
 ) => {
   let pool: Pool;
-  try {
     pool = (await ctx.store.get(Pool, poolIdToStr(poolId)))!;
-  } catch (error) {
+  if (pool == null) {
     await newPool(poolId, ctx);
     pool = (await ctx.store.get(Pool, poolIdToStr(poolId)))!;
   }
