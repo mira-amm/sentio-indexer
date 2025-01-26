@@ -1,7 +1,14 @@
 import assert from 'assert'
 import { before, describe, test } from 'node:test'
-import { TestProcessorServer, firstCounterValue } from '@sentio/sdk/testing'
-import { mockTransferLog } from '@sentio/sdk/eth/builtin/erc20'
+import { TestProcessorServer } from '@sentio/sdk/testing'
+import {
+  AMM_CONTRACT_ADDRESS,
+  BASE_ASSET_ID,
+  NETWORK_ID,
+  NETWORK_NAME,
+} from "./const.js";
+import testData from './test-data.json' assert {type: 'json'};
+import { PoolSnapshot, Pool } from "./schema/store.js";
 
 describe('Test Processor', () => {
   const service = new TestProcessorServer(() => import('./processor.js'))
@@ -13,18 +20,17 @@ describe('Test Processor', () => {
   test('has valid config', async () => {
     const config = await service.getConfig({})
     assert(config.contractConfigs.length > 0)
+    // CreatePoolEvent, SwapEvent, MintEvent, BurnEvent
+    assert.equal(config.contractConfigs[0].fuelLogConfigs.length, 4)
   })
+  
 
-  test('check transfer event handling', async () => {
-    const resp = await service.eth.testLog(
-      mockTransferLog('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', {
-        from: '0x0000000000000000000000000000000000000000',
-        to: '0xb329e39ebefd16f40d38f07643652ce17ca5bac1',
-        value: 10n ** 18n * 10n
-      })
-    )
+  test('test onLog ', async () => {
+    const res = await service.fuel.testOnTransaction(testData, NETWORK_ID);
+    // console.log(JSON.stringify(res))
+    console.log((await service.store.list(Pool))[0])
+    console.log(await service.store.list(PoolSnapshot))
 
-    const tokenCounter = firstCounterValue(resp.result, 'token')
-    assert.equal(tokenCounter, 10n)
-  })
+  });
+
 })
