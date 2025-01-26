@@ -42,10 +42,9 @@ const getOrCreatePool = async (
   poolId: PoolId,
   ctx: FuelContractContext<Amm>
 ) => {
-  let pool: Pool;
-  try {
-    pool = (await ctx.store.get(Pool, poolIdToStr(poolId)))!;
-  } catch (error) {
+  let pool: Pool | undefined;
+  pool = (await ctx.store.get(Pool, poolIdToStr(poolId)));
+  if (!pool) {
     await newPool(poolId, ctx);
     pool = (await ctx.store.get(Pool, poolIdToStr(poolId)))!;
   }
@@ -67,13 +66,14 @@ processor.onLogCreatePoolEvent(async (event, ctx) => {
       stable: event.data.pool_id[2],
       lpAssetId: getLPAssetId(event.data.pool_id),
     });
-
     await getOrCreatePool(event.data.pool_id, ctx);
   }
 });
 
 processor.onLogSwapEvent(async (event, ctx) => {
+  console.log("swap event checking if transaction was successful");
   if (ctx.transaction?.status === "success") {
+    console.log("pool id: " + poolIdToStr(event.data.pool_id));
     ctx.eventLogger.emit("Swap", {
       poolId: poolIdToStr(event.data.pool_id),
       token0In: event.data.asset_0_in,
@@ -85,7 +85,28 @@ processor.onLogSwapEvent(async (event, ctx) => {
         event.data.recipient.ContractId?.bits,
     });
 
+    // console.log("transaction was successful getting pool");
+
     const pool = await getOrCreatePool(event.data.pool_id, ctx);
+
+    // console.log("got or created pool");
+
+    if (pool.id === "a0265fb5c32f6e8db3197af3c7eb05c48ae373605b8165b6f4a51c5b0ba4812e-d6acf12b095570eb604cd049bb3caf19e7100fa958ea7c981a9c06a019dff369-false") {
+      console.log("swap before");
+      console.log({
+        "reserve0": pool.reserve0,
+        "reserve1": pool.reserve1
+      });
+
+      console.log({
+        // "asset0_out": event.data.asset_0_out.toJSON(),
+        "asset0_out": event.data.asset_0_out.valueOf(),
+        // "asset1_out": event.data.asset_1_out.toJSON(),
+        "asset1_out": event.data.asset_1_out.valueOf(),
+      });
+    } else {
+      console.log("different pool id" + pool.id);
+    }
 
     pool.reserve0 =
       pool.reserve0 +
@@ -101,6 +122,18 @@ processor.onLogSwapEvent(async (event, ctx) => {
       BigInt(event.data.asset_1_in.toString()) +
       BigInt(event.data.asset_1_out.toString());
 
+    if (pool.id === "a0265fb5c32f6e8db3197af3c7eb05c48ae373605b8165b6f4a51c5b0ba4812e-d6acf12b095570eb604cd049bb3caf19e7100fa958ea7c981a9c06a019dff369-false") {
+      console.log("swap after");
+      console.log({
+        "asset0_in": event.data.asset_0_in.toString(),
+        "asset1_in": event.data.asset_1_in.toString(),
+        "asset0_out": event.data.asset_0_out.toString(),
+        "asset1_out": event.data.asset_1_out.toString(),
+        "reserve0": pool.reserve0,
+        "reserve1": pool.reserve1
+      });
+    }
+
     const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
     snapshot.transactions += 1;
     snapshot.reserve0 = pool.reserve0;
@@ -113,6 +146,8 @@ processor.onLogSwapEvent(async (event, ctx) => {
       BigInt(event.data.asset_1_out.toString());
     await ctx.store.upsert(snapshot);
     await ctx.store.upsert(pool);
+  } else {
+    console.log("transaction failed")
   }
 });
 
@@ -130,9 +165,32 @@ processor.onLogMintEvent(async (event, ctx) => {
     });
 
     const pool = await getOrCreatePool(event.data.pool_id, ctx);
+
+    if (pool.id === "a0265fb5c32f6e8db3197af3c7eb05c48ae373605b8165b6f4a51c5b0ba4812e-d6acf12b095570eb604cd049bb3caf19e7100fa958ea7c981a9c06a019dff369-false") {
+      console.log("mint before");
+      console.log({
+        "asset0_in": event.data.asset_0_in.toString(),
+        "asset1_in": event.data.asset_1_in.toString(),
+        "reserve0": pool.reserve0,
+        "reserve1": pool.reserve1
+      });
+    }
+
     pool.reserve0 += BigInt(event.data.asset_0_in.toString());
     pool.reserve1 += BigInt(event.data.asset_1_in.toString());
     pool.lpTokenSupply += BigInt(event.data.liquidity.amount.toString());
+
+    if (pool.id === "a0265fb5c32f6e8db3197af3c7eb05c48ae373605b8165b6f4a51c5b0ba4812e-d6acf12b095570eb604cd049bb3caf19e7100fa958ea7c981a9c06a019dff369-false") {
+      console.log("mint after");
+      console.log({
+        "asset0_in": event.data.asset_0_in.toString(),
+        "asset1_in": event.data.asset_1_in.toString(),
+        // "asset0_out": event.data.asset_0_out.toString(),
+        // "asset1_out": event.data.asset_1_out.toString(),
+        "reserve0": pool.reserve0,
+        "reserve1": pool.reserve1
+      });
+    }
 
     const snapshot = await getPoolSnapshot(pool, ctx.timestamp, ctx);
     snapshot.transactions += 1;
