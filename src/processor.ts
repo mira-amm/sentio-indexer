@@ -73,7 +73,6 @@ processor.onLogCreatePoolEvent(async (event, ctx) => {
 processor.onLogSwapEvent(async (event, ctx) => {
   console.log("swap event checking if transaction was successful");
   if (ctx.transaction?.status === "success") {
-    console.log("pool id: " + poolIdToStr(event.data.pool_id));
     ctx.eventLogger.emit("Swap", {
       poolId: poolIdToStr(event.data.pool_id),
       token0In: event.data.asset_0_in,
@@ -105,7 +104,7 @@ processor.onLogSwapEvent(async (event, ctx) => {
         "asset1_out": event.data.asset_1_out.valueOf(),
       });
     } else {
-      console.log("different pool id" + pool.id);
+      // console.log("different pool id" + pool.id);
     }
 
     pool.reserve0 =

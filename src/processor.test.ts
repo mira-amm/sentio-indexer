@@ -12,8 +12,9 @@ import {
 import testData from './test-data.json' assert {type: 'json'};
 import { State, StoreContext } from '@sentio/runtime'
 import '@sentio/protos'
-import { Pool, PoolSnapshot } from "./schema/store.js";
+// import { Pool, PoolSnapshot } from "./schema/store.js";
 import fs from 'node:fs';
+import { Pool, PoolSnapshot } from "./schema/store.js";
 
 describe('Test Processor', () => {
   const service = new TestProcessorServer(async () => await import('./processor.js'))
