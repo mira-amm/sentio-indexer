@@ -1,5 +1,5 @@
 import { FuelContractContext } from "@sentio/sdk/fuel";
-import { Pool, PoolSnapshot } from "./schema/store.js";
+import { Campaign, Pool, PoolSnapshot, Position } from "./schema/store.js";
 import { Amm } from "./types/fuel/Amm.js";
 import { getLPAssetId, PoolId, poolIdToStr } from "./utils.js";
 
@@ -37,7 +37,7 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
   if (pool.mostRecentSnapshot == 0) {
     const snapshot = new PoolSnapshot({
       id: currentSnapshotId,
-      poolID: pool.id,
+      poolId: pool.id,
       timestamp: currentSnapshotTimestamp,
 
       transactions: 0,
@@ -72,7 +72,7 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
       const snapshotId = `${pool.id}-${timestamp}`;
       snapshot = new PoolSnapshot({
         id: snapshotId,
-        poolID: pool.id,
+        poolId: pool.id,
         timestamp: timestamp,
 
         transactions: 0,
