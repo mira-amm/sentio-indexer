@@ -1,18 +1,10 @@
-import { FuelContext, FuelGlobalProcessor, FuelAbstractProcessor } from "@sentio/sdk/fuel";
-import assert from 'assert'
 import { before, after, describe, test } from 'node:test'
 import { TestProcessorServer } from '@sentio/sdk/testing'
-import { getStore } from '@sentio/sdk/store'
 import {
-  AMM_CONTRACT_ADDRESS,
-  BASE_ASSET_ID,
   NETWORK_ID,
-  NETWORK_NAME,
 } from "./const.js";
-import testData from './test-data.json' assert {type: 'json'};
 import { State, StoreContext } from '@sentio/runtime'
 import '@sentio/protos'
-// import { Pool, PoolSnapshot } from "./schema/store.js";
 import fs from 'node:fs';
 import { Pool, PoolSnapshot } from "./schema/store.js";
 
@@ -23,16 +15,9 @@ describe('Test Processor', () => {
     await service.start()
   })
 
-  // test('has valid config', async () => {
-  //   const config = await service.getConfig({})
-  //     assert(config.contractConfigs.length > 0)
-  //     // CreatePoolEvent, SwapEvent, MintEvent, BurnEvent
-  //   assert.equal(config.contractConfigs[0].fuelLogConfigs.length, 4)
-  //   // assert(false, JSON.stringify(service.service.getConfig()));
-  // })
   test('test onLog ', async () => {
 
-  const filePath = '/Users/cmaklin/sentio-indexer/src/final.json';
+  const filePath = 'src/test-data.json';
 
   const data = fs.readFileSync(filePath, 'utf8');
 

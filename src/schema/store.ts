@@ -98,7 +98,7 @@ export class Pool extends AbstractEntity  {
 	@Column("Int")
 	mostRecentSnapshot: Int
   constructor(data: PoolConstructorInput) {super()}
-
+  
 }
 
 
@@ -179,7 +179,7 @@ export class PoolSnapshot extends AbstractEntity  {
 	@Column("Float")
 	volumeAsset1Decimal: Float
   constructor(data: PoolSnapshotConstructorInput) {super()}
-
+  
   pool(): Promise<Pool> {
     return this._pool
   }
@@ -237,6 +237,6 @@ DatabaseSchema.register({
   source,
   entities: {
     "Pool": Pool,
-	"PoolSnapshot": PoolSnapshot
+		"PoolSnapshot": PoolSnapshot
   }
 })
