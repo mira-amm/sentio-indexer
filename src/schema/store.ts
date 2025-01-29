@@ -104,7 +104,7 @@ export class Pool extends AbstractEntity  {
 
 interface PoolSnapshotConstructorInput {
   id: ID;
-  poolID?: ID;
+  poolId: ID;
   timestamp: Int;
   lpTokenSupply: BigInt;
   lpTokenSupplyDecimal: Float;
@@ -126,10 +126,8 @@ export class PoolSnapshot extends AbstractEntity  {
 	id: ID
 
 	@Required
-	@One("Pool")
-	_pool: Promise<Pool>
-
-	poolID: ID
+	@Column("ID")
+	poolId: ID
 
 	@Required
 	@Column("Int")
@@ -180,13 +178,69 @@ export class PoolSnapshot extends AbstractEntity  {
 	volumeAsset1Decimal: Float
   constructor(data: PoolSnapshotConstructorInput) {super()}
   
-  pool(): Promise<Pool> {
-    return this._pool
-  }
+}
 
-  setPool(pool: Pool) {
-    if (pool) this.poolID = pool.id
-  }
+
+interface CampaignConstructorInput {
+  id: String;
+  startTime: Int;
+  endTime: Int;
+  rewardAssetId: String;
+  rewardRate: Int;
+  stakingToken: String;
+}
+@Entity("Campaign")
+export class Campaign extends AbstractEntity  {
+
+	@Required
+	@Column("String")
+	id: String
+
+	@Required
+	@Column("Int")
+	startTime: Int
+
+	@Required
+	@Column("Int")
+	endTime: Int
+
+	@Required
+	@Column("String")
+	rewardAssetId: String
+
+	@Required
+	@Column("Int")
+	rewardRate: Int
+
+	@Required
+	@Column("String")
+	stakingToken: String
+  constructor(data: CampaignConstructorInput) {super()}
+  
+}
+
+
+interface PositionConstructorInput {
+  id: String;
+  rewardAssetId: String;
+  identity: String;
+}
+@Entity("Position")
+export class Position extends AbstractEntity  {
+
+	@Required
+	@Column("String")
+	id: String
+
+	@Required
+	@Column("String")
+	rewardAssetId: String
+
+	@Required
+	@Column("String")
+	identity: String
+  constructor(data: PositionConstructorInput) {super()}
+  
 }
 
 
@@ -215,7 +269,7 @@ const source = `type Pool @entity {
 
 type PoolSnapshot @entity {
   id: ID!
-  pool: Pool!
+  poolId: ID!
   timestamp: Int!
   lpTokenSupply: BigInt!
   lpTokenSupplyDecimal: Float!
@@ -232,11 +286,27 @@ type PoolSnapshot @entity {
   volumeAsset0Decimal: Float!
   volumeAsset1Decimal: Float!
 }
-`
+
+type Campaign @entity {
+  id: String!
+  startTime: Int!
+  endTime: Int!
+  rewardAssetId: String!
+  rewardRate: Int!
+  stakingToken: String!
+}
+
+type Position @entity {
+  id: String!
+  rewardAssetId: String!
+  identity: String!
+}`
 DatabaseSchema.register({
   source,
   entities: {
     "Pool": Pool,
-		"PoolSnapshot": PoolSnapshot
+		"PoolSnapshot": PoolSnapshot,
+		"Campaign": Campaign,
+		"Position": Position
   }
 })
