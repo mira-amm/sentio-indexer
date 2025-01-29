@@ -7,6 +7,7 @@ import { State, StoreContext } from '@sentio/runtime'
 import '@sentio/protos'
 import fs from 'node:fs';
 import { Pool, PoolSnapshot } from "./schema/store.js";
+import assert from 'node:assert';
 
 describe('Test Processor', () => {
   const service = new TestProcessorServer(async () => await import('./processor.js'))
@@ -26,22 +27,16 @@ describe('Test Processor', () => {
     .map(line => {
       return JSON.parse(line)
     })
-  let i = 0;
   for (let i = 0; i < jsonObjects.length; i++) {
-    console.log("transactionId:" + jsonObjects[i].id)
-    const res = await service.fuel.testOnTransaction(jsonObjects[i], NETWORK_ID);
+    await service.fuel.testOnTransaction(jsonObjects[i], NETWORK_ID);
   }
 
     const pools = await service.store.list(Pool);
     const pool = pools.find(p => p.id === 'a0265fb5c32f6e8db3197af3c7eb05c48ae373605b8165b6f4a51c5b0ba4812e-d6acf12b095570eb604cd049bb3caf19e7100fa958ea7c981a9c06a019dff369-false');
-    if (pool) {
-      console.log({
-        "reserve0": pool.reserve0,
-        "reserve1": pool.reserve1
-      });
-    } else {
-      console.log("pool not found");
-    }
+
+    assert(pool, 'pool not found');
+    assert(pool.reserve0 === 52348n, 'reserve0 not equal');
+    assert(pool.reserve1 === 9793151397774n, 'reserve1 not equal');
 });
 
   after(async () => {
