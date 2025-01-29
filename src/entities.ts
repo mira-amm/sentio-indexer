@@ -11,9 +11,6 @@ export async function newPool(poolId: PoolId, ctx: FuelContractContext<Amm>) {
     isStable: poolId[2],
     lpToken: getLPAssetId(poolId),
 
-    // lpTokenSupply: 0n,
-    // reserve0: 0n,
-    // reserve1: 0n,
     lpTokenSupply: 0n,
     lpTokenSupplyDecimal: 0.0, // Added missing property
     reserve0: 0n,
@@ -27,8 +24,6 @@ export async function newPool(poolId: PoolId, ctx: FuelContractContext<Amm>) {
     volumeAsset1Decimal: 0.0, // Added missing property
 
     mostRecentSnapshot: 0,
-    // volumeAsset0: 0n,
-    // volumeAsset1: 0n,
 
     // mostRecentSnapshot: 0
   });
@@ -47,7 +42,6 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
   if (pool.mostRecentSnapshot == 0) {
     const snapshot = new PoolSnapshot({
       id: currentSnapshotId,
-      // pool: Promise.resolve(pool),
       poolID: pool.id,
       timestamp: currentSnapshotTimestamp,
 
@@ -84,7 +78,6 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
       const snapshotId = `${pool.id}-${timestamp}`;
       snapshot = new PoolSnapshot({
         id: snapshotId,
-        // pool: Promise.resolve(pool),
         poolID: pool.id,
         timestamp: timestamp,
 
