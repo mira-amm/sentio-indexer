@@ -12,13 +12,22 @@ export async function newPool(poolId: PoolId, ctx: FuelContractContext<Amm>) {
     lpToken: getLPAssetId(poolId),
 
     lpTokenSupply: 0n,
+    lpTokenSupplyDecimal: 0.0, // Added missing property
     reserve0: 0n,
     reserve1: 0n,
+    reserve0Decimal: 0.0, // Added missing property
+    reserve1Decimal: 0.0, // Added missing property
 
     volumeAsset0: 0n,
     volumeAsset1: 0n,
+    volumeAsset0Decimal: 0.0, // Added missing property
+    volumeAsset1Decimal: 0.0, // Added missing property
+
+    mostRecentSnapshot: 0,
+
+    // mostRecentSnapshot: 0
   });
-  ctx.store.upsert(pool);
+  await ctx.store.upsert(pool);
 }
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -33,13 +42,19 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
   if (pool.mostRecentSnapshot == 0) {
     const snapshot = new PoolSnapshot({
       id: currentSnapshotId,
-      pool: Promise.resolve(pool),
+      poolID: pool.id,
       timestamp: currentSnapshotTimestamp,
 
       transactions: 0,
 
       reserve0: pool.reserve0,
       reserve1: pool.reserve1,
+
+      lpTokenSupplyDecimal: pool.lpTokenSupplyDecimal, // Added missing property
+      volumeAsset0Decimal: pool.volumeAsset0Decimal, // Added missing property
+      volumeAsset1Decimal: pool.volumeAsset1Decimal, // Added missing property
+      reserve0Decimal: pool.reserve0Decimal, // Added missing property
+      reserve1Decimal: pool.reserve1Decimal, // Added missing property
 
       lpTokenSupply: 0n,
 
@@ -63,7 +78,7 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
       const snapshotId = `${pool.id}-${timestamp}`;
       snapshot = new PoolSnapshot({
         id: snapshotId,
-        pool: Promise.resolve(pool),
+        poolID: pool.id,
         timestamp: timestamp,
 
         transactions: 0,
@@ -72,6 +87,10 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
         reserve1: pool.reserve1,
         reserve0Decimal: pool.reserve0Decimal,
         reserve1Decimal: pool.reserve1Decimal,
+
+        lpTokenSupplyDecimal: pool.lpTokenSupplyDecimal, // Added missing property
+        volumeAsset0Decimal: pool.volumeAsset0Decimal, // Added missing property
+        volumeAsset1Decimal: pool.volumeAsset1Decimal, // Added missing property
 
         lpTokenSupply: pool.lpTokenSupply,
 
