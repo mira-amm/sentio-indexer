@@ -48,10 +48,18 @@ type Campaign @entity {
   rewardAssetId: String!
   rewardRate: Int!
   stakingToken: String!
+  totalPendingRewards: Int!
 }
 
 type Position @entity {
   id: String!
   rewardAssetId: String!
   identity: String!
+  pendingRewardsTotal: Int!
+}
+
+type User @entity {
+  id: String!
+  totalPendingRewards: Int!
+  totalClaimedRewards: Int!
 }

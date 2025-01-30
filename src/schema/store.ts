@@ -188,6 +188,7 @@ interface CampaignConstructorInput {
   rewardAssetId: String;
   rewardRate: Int;
   stakingToken: String;
+  totalPendingRewards: Int;
 }
 @Entity("Campaign")
 export class Campaign extends AbstractEntity  {
@@ -215,6 +216,10 @@ export class Campaign extends AbstractEntity  {
 	@Required
 	@Column("String")
 	stakingToken: String
+
+	@Required
+	@Column("Int")
+	totalPendingRewards: Int
   constructor(data: CampaignConstructorInput) {super()}
   
 }
@@ -224,6 +229,7 @@ interface PositionConstructorInput {
   id: String;
   rewardAssetId: String;
   identity: String;
+  pendingRewardsTotal: Int;
 }
 @Entity("Position")
 export class Position extends AbstractEntity  {
@@ -239,7 +245,35 @@ export class Position extends AbstractEntity  {
 	@Required
 	@Column("String")
 	identity: String
+
+	@Required
+	@Column("Int")
+	pendingRewardsTotal: Int
   constructor(data: PositionConstructorInput) {super()}
+  
+}
+
+
+interface UserConstructorInput {
+  id: String;
+  totalPendingRewards: Int;
+  totalClaimedRewards: Int;
+}
+@Entity("User")
+export class User extends AbstractEntity  {
+
+	@Required
+	@Column("String")
+	id: String
+
+	@Required
+	@Column("Int")
+	totalPendingRewards: Int
+
+	@Required
+	@Column("Int")
+	totalClaimedRewards: Int
+  constructor(data: UserConstructorInput) {super()}
   
 }
 
@@ -294,12 +328,20 @@ type Campaign @entity {
   rewardAssetId: String!
   rewardRate: Int!
   stakingToken: String!
+  totalPendingRewards: Int!
 }
 
 type Position @entity {
   id: String!
   rewardAssetId: String!
   identity: String!
+  pendingRewardsTotal: Int!
+}
+
+type User @entity {
+  id: String!
+  totalPendingRewards: Int!
+  totalClaimedRewards: Int!
 }`
 DatabaseSchema.register({
   source,
@@ -307,6 +349,7 @@ DatabaseSchema.register({
     "Pool": Pool,
 		"PoolSnapshot": PoolSnapshot,
 		"Campaign": Campaign,
-		"Position": Position
+		"Position": Position,
+		"User": User
   }
 })
