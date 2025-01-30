@@ -41,6 +41,7 @@ processor.onLogNewPositionEvent(async (event, ctx) => {
             rewardAssetId: event.data.asset_id.bits,
             identity: event.data.owner.Address?.bits ||
                 event.data.owner.ContractId?.bits || "",
+            pendingRewardsTotal: 0,
         });
         await ctx.store.upsert(position);
     }
@@ -61,35 +62,35 @@ processor.onLogPositionDepositEvent(async (event, ctx) => {
     }
 });
 
-// withdraw_assets
-processor.onLogPositionWithdrawEvent(async (event, ctx) => {
-    if (ctx.transaction?.status === "success") {
-        ctx.eventLogger.emit("PositionWithdraw", {
-            positionId: event.data.position_id,
-            amount: event.data.amount.toNumber(),
-        });
-        // We do not create the position if it does not already exist since the smart contract should revert in this case
-        // Should revert if the asset is not the staking asset...
-        let position = await ctx.store.get(Position, event.data.position_id.toString());
-        // event.data.asset
-        // event.data.amount
-    }
-});
+// // withdraw_assets
+// processor.onLogPositionWithdrawEvent(async (event, ctx) => {
+//     if (ctx.transaction?.status === "success") {
+//         ctx.eventLogger.emit("PositionWithdraw", {
+//             positionId: event.data.position_id,
+//             amount: event.data.amount.toNumber(),
+//         });
+//         // We do not create the position if it does not already exist since the smart contract should revert in this case
+//         // Should revert if the asset is not the staking asset...
+//         let position = await ctx.store.get(Position, event.data.position_id.toString());
+//         // event.data.asset
+//         // event.data.amount
+//     }
+// });
 
-// claim_rewards
-processor.onLogClaimRewardsEvent(async (event, ctx) => {
-    if (ctx.transaction?.status === "success") {
-        ctx.eventLogger.emit("ClaimRewards", {
-            positionId: event.data.position_id,
-            amount: event.data.amount.toNumber(),
-        });
-        // We do not create the position if it does not already exist since the smart contract should revert in this case
-        // Should revert if the asset is not the staking asset...
-        let position = await ctx.store.get(Position, event.data.position_id.toString());
-        // event.data.asset
-        // event.data.amount
-    }
-});
+// // claim_rewards
+// processor.onLogClaimRewardsEvent(async (event, ctx) => {
+//     if (ctx.transaction?.status === "success") {
+//         ctx.eventLogger.emit("ClaimRewards", {
+//             positionId: event.data.position_id,
+//             amount: event.data.amount.toNumber(),
+//         });
+//         // We do not create the position if it does not already exist since the smart contract should revert in this case
+//         // Should revert if the asset is not the staking asset...
+//         let position = await ctx.store.get(Position, event.data.position_id.toString());
+//         // event.data.asset
+//         // event.data.amount
+//     }
+// });
 
 // fund_rewards
 processor.onLogCampaignFundedEvent(async (event, ctx) => {
@@ -99,17 +100,30 @@ processor.onLogCampaignFundedEvent(async (event, ctx) => {
             amount: event.data.amount.toNumber(),
         });
 
+        let campaign = await ctx.store.get(Campaign, event.data.campaign_id.toString());
+        if (!campaign) {
+            // log("Campaign not found", event.data.campaign_id.toString());
+            return;
+        }
+        campaign.totalPendingRewards += event.data.amount.toNumber();
+
         // log(CampaignFundedEvent {
         //     campaign_id,
         //     amount,
         //     new_reward_rate: campaign.reward_rate,
         // });
-        
+
     }
 });
 
 processor.onLogCampaignExtendedEvent(async (event, ctx) => {
-
+    if (ctx.transaction?.status === "success") {
+        ctx.eventLogger.emit("CampaignExtended", {
+            campaignId: event.data.campaign_id,
+            endTime: event.data.new_end_time.toNumber(),
+        });
+        // The new rate just be included in the event raised by the contract
+    }
 });
 
 
