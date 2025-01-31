@@ -25,6 +25,7 @@ processor.onLogNewCampaignEvent(async (event, ctx) => {
             endTime: event.data.end_time.toNumber(),
             rewardAssetId: event.data.reward_asset.bits,
             rewardRate: event.data.reward_rate.toNumber(),
+            owner: event.data.owner.Address?.bits || event.data.owner.ContractId?.bits || "",
           });
           await ctx.store.upsert(campaign);
       }
@@ -105,7 +106,8 @@ processor.onLogCampaignFundedEvent(async (event, ctx) => {
             // log("Campaign not found", event.data.campaign_id.toString());
             return;
         }
-        campaign.totalPendingRewards += event.data.amount.toNumber();
+        // campaign.totalPendingRewards += event.data.amount.toNumber();
+        // campaign.apr =
 
         // log(CampaignFundedEvent {
         //     campaign_id,

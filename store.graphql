@@ -48,7 +48,9 @@ type Campaign @entity {
   rewardAssetId: String!
   rewardRate: Int!
   stakingToken: String!
-  totalPendingRewards: Int!
+  # totalPendingRewards: Int!
+  # apr: Float!
+  owner: String!
 }
 
 type Position @entity {

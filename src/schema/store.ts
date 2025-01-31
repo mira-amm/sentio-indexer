@@ -188,7 +188,7 @@ interface CampaignConstructorInput {
   rewardAssetId: String;
   rewardRate: Int;
   stakingToken: String;
-  totalPendingRewards: Int;
+  owner: String;
 }
 @Entity("Campaign")
 export class Campaign extends AbstractEntity  {
@@ -218,8 +218,8 @@ export class Campaign extends AbstractEntity  {
 	stakingToken: String
 
 	@Required
-	@Column("Int")
-	totalPendingRewards: Int
+	@Column("String")
+	owner: String
   constructor(data: CampaignConstructorInput) {super()}
   
 }
@@ -328,7 +328,9 @@ type Campaign @entity {
   rewardAssetId: String!
   rewardRate: Int!
   stakingToken: String!
-  totalPendingRewards: Int!
+  # totalPendingRewards: Int!
+  # apr: Float!
+  owner: String!
 }
 
 type Position @entity {
