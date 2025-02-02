@@ -186,8 +186,7 @@ processor.onTimeInterval(
 );
 
 FuelGlobalProcessor.bind({
-  chainId: NETWORK_ID,
-  startBlock: 3439718n,
+  chainId: NETWORK_ID
 }).onTransaction(async (tx, ctx) => {
   if (tx.blockNumber === "1") {
     ctx.eventLogger.emit("SetName", {
