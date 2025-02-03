@@ -45,9 +45,12 @@ type Campaign @entity {
   id: String!
   startTime: Int!
   endTime: Int!
+  lastAccrualTime: Int!
   rewardAssetId: String!
-  rewardRate: Int!
+  # rewardRate: Int!
+  rewardsAccruedPerStakingToken: Int!
   stakingToken: String!
+  totalRemainingRewards: Int!
   # totalPendingRewards: Int!
   # apr: Float!
   owner: String!
@@ -55,9 +58,12 @@ type Campaign @entity {
 
 type Position @entity {
   id: String!
-  rewardAssetId: String!
   identity: String!
-  pendingRewardsTotal: Int!
+  stakingTokens: Int!
+  lastAccrualTime: Int!
+  rewardAssetId: String!
+  rewardsAccrued: Int!
+  # pendingRewardsTotal: Int!
 }
 
 type User @entity {

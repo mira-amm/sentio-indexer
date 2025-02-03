@@ -185,9 +185,11 @@ interface CampaignConstructorInput {
   id: String;
   startTime: Int;
   endTime: Int;
+  lastAccrualTime: Int;
   rewardAssetId: String;
-  rewardRate: Int;
+  rewardsAccruedPerStakingToken: Int;
   stakingToken: String;
+  totalRemainingRewards: Int;
   owner: String;
 }
 @Entity("Campaign")
@@ -206,16 +208,24 @@ export class Campaign extends AbstractEntity  {
 	endTime: Int
 
 	@Required
+	@Column("Int")
+	lastAccrualTime: Int
+
+	@Required
 	@Column("String")
 	rewardAssetId: String
 
 	@Required
 	@Column("Int")
-	rewardRate: Int
+	rewardsAccruedPerStakingToken: Int
 
 	@Required
 	@Column("String")
 	stakingToken: String
+
+	@Required
+	@Column("Int")
+	totalRemainingRewards: Int
 
 	@Required
 	@Column("String")
@@ -227,9 +237,11 @@ export class Campaign extends AbstractEntity  {
 
 interface PositionConstructorInput {
   id: String;
-  rewardAssetId: String;
   identity: String;
-  pendingRewardsTotal: Int;
+  stakingTokens: Int;
+  lastAccrualTime: Int;
+  rewardAssetId: String;
+  rewardsAccrued: Int;
 }
 @Entity("Position")
 export class Position extends AbstractEntity  {
@@ -240,15 +252,23 @@ export class Position extends AbstractEntity  {
 
 	@Required
 	@Column("String")
-	rewardAssetId: String
-
-	@Required
-	@Column("String")
 	identity: String
 
 	@Required
 	@Column("Int")
-	pendingRewardsTotal: Int
+	stakingTokens: Int
+
+	@Required
+	@Column("Int")
+	lastAccrualTime: Int
+
+	@Required
+	@Column("String")
+	rewardAssetId: String
+
+	@Required
+	@Column("Int")
+	rewardsAccrued: Int
   constructor(data: PositionConstructorInput) {super()}
   
 }
@@ -325,9 +345,12 @@ type Campaign @entity {
   id: String!
   startTime: Int!
   endTime: Int!
+  lastAccrualTime: Int!
   rewardAssetId: String!
-  rewardRate: Int!
+  # rewardRate: Int!
+  rewardsAccruedPerStakingToken: Int!
   stakingToken: String!
+  totalRemainingRewards: Int!
   # totalPendingRewards: Int!
   # apr: Float!
   owner: String!
@@ -335,16 +358,20 @@ type Campaign @entity {
 
 type Position @entity {
   id: String!
-  rewardAssetId: String!
   identity: String!
-  pendingRewardsTotal: Int!
+  stakingTokens: Int!
+  lastAccrualTime: Int!
+  rewardAssetId: String!
+  rewardsAccrued: Int!
+  # pendingRewardsTotal: Int!
 }
 
 type User @entity {
   id: String!
   totalPendingRewards: Int!
   totalClaimedRewards: Int!
-}`
+}
+`
 DatabaseSchema.register({
   source,
   entities: {
