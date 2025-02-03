@@ -37,19 +37,23 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
   if (pool.mostRecentSnapshot == 0) {
     const snapshot = new PoolSnapshot({
       id: currentSnapshotId,
-      poolID: (await Promise.resolve(pool)).id,
+      poolID: pool.id,
       timestamp: currentSnapshotTimestamp,
-      lpTokenSupply: 0n,
-      lpTokenSupplyDecimal: 0,
+
       transactions: 0,
+
       reserve0: pool.reserve0,
       reserve1: pool.reserve1,
-      reserve0Decimal: 0,
-      reserve1Decimal: 0,
+      reserve0Decimal: pool.reserve0Decimal,
+      reserve1Decimal: pool.reserve1Decimal,
+
+      lpTokenSupply: pool.lpTokenSupply,
+      lpTokenSupplyDecimal: pool.lpTokenSupplyDecimal,
       volumeAsset0: 0n,
       volumeAsset1: 0n,
-      volumeAsset0Decimal: 0,
-      volumeAsset1Decimal: 0,
+      volumeAsset0Decimal: pool.volumeAsset0Decimal,
+      volumeAsset1Decimal: pool.volumeAsset1Decimal,
+
     });
 
     pool.mostRecentSnapshot = currentSnapshotTimestamp;
@@ -68,7 +72,7 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
       const snapshotId = `${pool.id}-${timestamp}`;
       snapshot = new PoolSnapshot({
         id: snapshotId,
-        poolID: (await Promise.resolve(pool)).id,
+        poolID: pool.id,
         timestamp: timestamp,
 
         transactions: 0,
@@ -79,12 +83,11 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
         reserve1Decimal: pool.reserve1Decimal,
 
         lpTokenSupply: pool.lpTokenSupply,
-        lpTokenSupplyDecimal: 0,
-
+        lpTokenSupplyDecimal: pool.lpTokenSupplyDecimal,
         volumeAsset0: 0n,
         volumeAsset1: 0n,
-        volumeAsset0Decimal: 0,
-        volumeAsset1Decimal: 0,
+        volumeAsset0Decimal: pool.volumeAsset0Decimal,
+        volumeAsset1Decimal: pool.volumeAsset1Decimal,
       });
       await ctx.store.upsert(snapshot);
     }

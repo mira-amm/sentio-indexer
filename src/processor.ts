@@ -42,9 +42,9 @@ const getOrCreatePool = async (
   poolId: PoolId,
   ctx: FuelContractContext<Amm>
 ) => {
-  let pool: Pool;
-    pool = (await ctx.store.get(Pool, poolIdToStr(poolId)))!;
-  if (pool == null) {
+  let pool: Pool | undefined;
+  pool = (await ctx.store.get(Pool, poolIdToStr(poolId)))!;
+  if (!pool) {
     await newPool(poolId, ctx);
     pool = (await ctx.store.get(Pool, poolIdToStr(poolId)))!;
   }
@@ -185,7 +185,6 @@ processor.onTimeInterval(
 
 FuelGlobalProcessor.bind({
   chainId: NETWORK_ID,
-  startBlock: 3439718n,
 }).onTransaction(async (tx, ctx) => {
   if (tx.blockNumber === "1") {
     ctx.eventLogger.emit("SetName", {
