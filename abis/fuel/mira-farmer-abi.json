@@ -68,64 +68,59 @@
       ]
     },
     {
-      "type": "struct events::CampaignExitedEvent",
-      "concreteTypeId": "9d8d1d9010b68a9c889f3eb9e88272b3a75f652d4455d0291f1d5fac12df3f29",
-      "metadataTypeId": 10
-    },
-    {
       "type": "struct events::CampaignExtendedEvent",
       "concreteTypeId": "a34ace61557454ecf2a213f16b6ce3c350455fb5a868df6ac8ee00f794f520f3",
-      "metadataTypeId": 11
+      "metadataTypeId": 10
     },
     {
       "type": "struct events::CampaignFundedEvent",
       "concreteTypeId": "24c328778b46489b4d13adcfa15d09b81042e36d4a5db1555943f564ef3914e2",
-      "metadataTypeId": 12
+      "metadataTypeId": 11
     },
     {
       "type": "struct events::CampaignJoinedEvent",
       "concreteTypeId": "2aef03381bfa1660e6271476a360a153b43c5a02315c8fd254f1ce0e24edd239",
-      "metadataTypeId": 13
-    },
-    {
-      "type": "struct events::InputDebugEvent",
-      "concreteTypeId": "287a294f937174c5fcf9670652977b288cc4988603feed1b634de9860baf7663",
-      "metadataTypeId": 14
+      "metadataTypeId": 12
     },
     {
       "type": "struct events::NewCampaignEvent",
       "concreteTypeId": "b6ee5e8babadf83e3ff35b2407daf5b0910d59e962fdf6deb39c79b95052c351",
-      "metadataTypeId": 15
+      "metadataTypeId": 13
     },
     {
       "type": "struct events::NewPositionEvent",
       "concreteTypeId": "fc022658cc2ae066546794de628b6f106705641b98376b35c3ed23a5ab97a46e",
-      "metadataTypeId": 16
+      "metadataTypeId": 14
     },
     {
       "type": "struct events::PositionDepositEvent",
       "concreteTypeId": "6d400b2f23401091672a24f55f96680d4a28b0b3e8d8b6a6506b7cfccad56c5a",
-      "metadataTypeId": 17
+      "metadataTypeId": 15
+    },
+    {
+      "type": "struct events::PositionWithdrawEvent",
+      "concreteTypeId": "2e62270b6ba94126180979def77bc32a39556d22a923b07e5693be8cbaaf8a97",
+      "metadataTypeId": 16
     },
     {
       "type": "struct lib::data_structures::CampaignInfo",
       "concreteTypeId": "486c08a4f3b4d822274de2ec53c05521b4c22835be1de3d13b472c0f08ddb30c",
-      "metadataTypeId": 18
+      "metadataTypeId": 17
     },
     {
       "type": "struct lib::data_structures::Position",
       "concreteTypeId": "3b78831ffa70e307177d090b6ba06067f5cfc625a38010a1235f1b3748dd4723",
-      "metadataTypeId": 19
+      "metadataTypeId": 18
     },
     {
       "type": "struct std::asset_id::AssetId",
       "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974",
-      "metadataTypeId": 21
+      "metadataTypeId": 20
     },
     {
       "type": "struct std::string::String",
       "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c",
-      "metadataTypeId": 25
+      "metadataTypeId": 24
     },
     {
       "type": "u64",
@@ -171,11 +166,11 @@
       "components": [
         {
           "name": "__tuple_element",
-          "typeId": 21
+          "typeId": 20
         },
         {
           "name": "__tuple_element",
-          "typeId": 21
+          "typeId": 20
         }
       ]
     },
@@ -196,12 +191,12 @@
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
-          "name": "InvalidStakingToken",
-          "typeId": 21
+          "name": "InvalidLpToken",
+          "typeId": 20
         },
         {
           "name": "InvalidRewardToken",
-          "typeId": 21
+          "typeId": 20
         },
         {
           "name": "CampaignEnded",
@@ -213,6 +208,10 @@
         },
         {
           "name": "WrongRewardToken",
+          "typeId": 2
+        },
+        {
+          "name": "WrongStakingToken",
           "typeId": 2
         },
         {
@@ -238,6 +237,10 @@
         {
           "name": "NotInCampaign",
           "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "WithdrawalAmountExceedsBalance",
+          "typeId": 1
         }
       ]
     },
@@ -265,11 +268,11 @@
       "components": [
         {
           "name": "Address",
-          "typeId": 20
+          "typeId": 19
         },
         {
           "name": "ContractId",
-          "typeId": 24
+          "typeId": 23
         }
       ]
     },
@@ -299,26 +302,8 @@
       "metadataTypeId": 9
     },
     {
-      "type": "struct events::CampaignExitedEvent",
-      "metadataTypeId": 10,
-      "components": [
-        {
-          "name": "position_id",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "campaign_id",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "amount",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        }
-      ]
-    },
-    {
       "type": "struct events::CampaignExtendedEvent",
-      "metadataTypeId": 11,
+      "metadataTypeId": 10,
       "components": [
         {
           "name": "campaign_id",
@@ -332,7 +317,7 @@
     },
     {
       "type": "struct events::CampaignFundedEvent",
-      "metadataTypeId": 12,
+      "metadataTypeId": 11,
       "components": [
         {
           "name": "campaign_id",
@@ -341,16 +326,12 @@
         {
           "name": "amount",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "new_reward_rate",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
       ]
     },
     {
       "type": "struct events::CampaignJoinedEvent",
-      "metadataTypeId": 13,
+      "metadataTypeId": 12,
       "components": [
         {
           "name": "position_id",
@@ -359,24 +340,6 @@
         {
           "name": "campaign_id",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "amount",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        }
-      ]
-    },
-    {
-      "type": "struct events::InputDebugEvent",
-      "metadataTypeId": 14,
-      "components": [
-        {
-          "name": "index",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "asset_id",
-          "typeId": 21
         },
         {
           "name": "amount",
@@ -386,7 +349,7 @@
     },
     {
       "type": "struct events::NewCampaignEvent",
-      "metadataTypeId": 15,
+      "metadataTypeId": 13,
       "components": [
         {
           "name": "campaign_id",
@@ -398,11 +361,11 @@
         },
         {
           "name": "reward_asset",
-          "typeId": 21
+          "typeId": 20
         },
         {
           "name": "staking_token",
-          "typeId": 21
+          "typeId": 20
         },
         {
           "name": "start_time",
@@ -411,16 +374,12 @@
         {
           "name": "end_time",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "reward_rate",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
       ]
     },
     {
       "type": "struct events::NewPositionEvent",
-      "metadataTypeId": 16,
+      "metadataTypeId": 14,
       "components": [
         {
           "name": "position_id",
@@ -432,13 +391,13 @@
         },
         {
           "name": "asset_id",
-          "typeId": 21
+          "typeId": 20
         }
       ]
     },
     {
       "type": "struct events::PositionDepositEvent",
-      "metadataTypeId": 17,
+      "metadataTypeId": 15,
       "components": [
         {
           "name": "position_id",
@@ -446,7 +405,7 @@
         },
         {
           "name": "asset",
-          "typeId": 21
+          "typeId": 20
         },
         {
           "name": "amount",
@@ -455,16 +414,34 @@
       ]
     },
     {
+      "type": "struct events::PositionWithdrawEvent",
+      "metadataTypeId": 16,
+      "components": [
+        {
+          "name": "position_id",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "asset",
+          "typeId": 20
+        },
+        {
+          "name": "amount",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "recipient",
+          "typeId": 6
+        }
+      ]
+    },
+    {
       "type": "struct lib::data_structures::CampaignInfo",
-      "metadataTypeId": 18,
+      "metadataTypeId": 17,
       "components": [
         {
           "name": "reward_asset",
-          "typeId": 21
-        },
-        {
-          "name": "start_time",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+          "typeId": 20
         },
         {
           "name": "end_time",
@@ -479,31 +456,27 @@
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
-          "name": "reward_rate",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "last_update_time",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "accumulated_reward_per_share",
-          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
           "name": "staking_token",
-          "typeId": 21
+          "typeId": 20
+        },
+        {
+          "name": "start_time",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "last_accrual_time",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "rewards_accrued_per_staking_token",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
       ]
     },
     {
       "type": "struct lib::data_structures::Position",
-      "metadataTypeId": 19,
+      "metadataTypeId": 18,
       "components": [
-        {
-          "name": "asset",
-          "typeId": 21
-        },
         {
           "name": "amount_deposited",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
@@ -511,12 +484,24 @@
         {
           "name": "num_campaigns",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "asset",
+          "typeId": 20
+        },
+        {
+          "name": "last_accrual_time",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "rewards_accrued_per_staking_token",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
       ]
     },
     {
       "type": "struct std::address::Address",
-      "metadataTypeId": 20,
+      "metadataTypeId": 19,
       "components": [
         {
           "name": "bits",
@@ -526,7 +511,7 @@
     },
     {
       "type": "struct std::asset_id::AssetId",
-      "metadataTypeId": 21,
+      "metadataTypeId": 20,
       "components": [
         {
           "name": "bits",
@@ -536,11 +521,11 @@
     },
     {
       "type": "struct std::bytes::Bytes",
-      "metadataTypeId": 22,
+      "metadataTypeId": 21,
       "components": [
         {
           "name": "buf",
-          "typeId": 23
+          "typeId": 22
         },
         {
           "name": "len",
@@ -550,7 +535,7 @@
     },
     {
       "type": "struct std::bytes::RawBytes",
-      "metadataTypeId": 23,
+      "metadataTypeId": 22,
       "components": [
         {
           "name": "ptr",
@@ -564,7 +549,7 @@
     },
     {
       "type": "struct std::contract_id::ContractId",
-      "metadataTypeId": 24,
+      "metadataTypeId": 23,
       "components": [
         {
           "name": "bits",
@@ -574,11 +559,11 @@
     },
     {
       "type": "struct std::string::String",
-      "metadataTypeId": 25,
+      "metadataTypeId": 24,
       "components": [
         {
           "name": "bytes",
-          "typeId": 22
+          "typeId": 21
         }
       ]
     }
@@ -928,20 +913,20 @@
           "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
         },
         {
-          "name": "start_time",
-          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
-        },
-        {
-          "name": "end_time",
-          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+          "name": "reward_asset",
+          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
         },
         {
           "name": "staking_token",
           "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
         },
         {
-          "name": "reward_asset",
-          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
+          "name": "start_time",
+          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "end_time",
+          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
       ],
       "name": "create_campaign",
@@ -1507,13 +1492,19 @@
         {
           "name": "doc-comment",
           "arguments": [
+            " let staking_token = AssetId::from(LP_TOKEN);"
+          ]
+        },
+        {
+          "name": "doc-comment",
+          "arguments": [
             ""
           ]
         },
         {
           "name": "doc-comment",
           "arguments": [
-            " let (position_id, nft_output) = create_position(recipient);"
+            " let (position_id, nft_output) = create_position(recipient, staking_token);"
           ]
         },
         {
@@ -1584,12 +1575,6 @@
         {
           "name": "doc-comment",
           "arguments": [
-            " * `staking_token`: The token being deposited"
-          ]
-        },
-        {
-          "name": "doc-comment",
-          "arguments": [
             ""
           ]
         },
@@ -1608,7 +1593,7 @@
         {
           "name": "doc-comment",
           "arguments": [
-            " * Must send the staking tokens along with the call (payable function)"
+            " * Must send the lp tokens along with the call (payable function)"
           ]
         },
         {
@@ -2970,7 +2955,7 @@
         {
           "name": "doc-comment",
           "arguments": [
-            "   - last_update_time: Last time rewards were calculated"
+            "   - last_accrual_time: Last time rewards were calculated"
           ]
         },
         {
@@ -3729,19 +3714,19 @@
     {
       "inputs": [
         {
-          "name": "_position_id",
+          "name": "position_id",
           "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
-          "name": "_position_token",
-          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
+          "name": "position_token",
+          "concreteTypeId": "d5a135148379b6eeb66df67f95d2c23c8b803678d425fa3d7c191c0555ccfe51"
         },
         {
-          "name": "_amount",
+          "name": "amount",
           "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
-          "name": "_recipient",
+          "name": "recipient",
           "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
         }
       ],
@@ -4163,16 +4148,8 @@
       "concreteTypeId": "fc022658cc2ae066546794de628b6f106705641b98376b35c3ed23a5ab97a46e"
     },
     {
-      "logId": "2916689130428658885",
-      "concreteTypeId": "287a294f937174c5fcf9670652977b288cc4988603feed1b634de9860baf7663"
-    },
-    {
       "logId": "7872304445726396561",
       "concreteTypeId": "6d400b2f23401091672a24f55f96680d4a28b0b3e8d8b6a6506b7cfccad56c5a"
-    },
-    {
-      "logId": "11352762740263783068",
-      "concreteTypeId": "9d8d1d9010b68a9c889f3eb9e88272b3a75f652d4455d0291f1d5fac12df3f29"
     },
     {
       "logId": "11766443893899678956",
@@ -4185,6 +4162,10 @@
     {
       "logId": "3093695008549246560",
       "concreteTypeId": "2aef03381bfa1660e6271476a360a153b43c5a02315c8fd254f1ce0e24edd239"
+    },
+    {
+      "logId": "3342276803466707238",
+      "concreteTypeId": "2e62270b6ba94126180979def77bc32a39556d22a923b07e5693be8cbaaf8a97"
     }
   ],
   "messagesTypes": [],

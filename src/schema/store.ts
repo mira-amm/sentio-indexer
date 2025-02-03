@@ -187,9 +187,8 @@ interface CampaignConstructorInput {
   endTime: Int;
   lastAccrualTime: Int;
   rewardAssetId: String;
-  rewardsAccruedPerStakingToken: Int;
   stakingToken: String;
-  totalRemainingRewards: Int;
+  stakingTokens: Int;
   owner: String;
 }
 @Entity("Campaign")
@@ -216,16 +215,12 @@ export class Campaign extends AbstractEntity  {
 	rewardAssetId: String
 
 	@Required
-	@Column("Int")
-	rewardsAccruedPerStakingToken: Int
-
-	@Required
 	@Column("String")
 	stakingToken: String
 
 	@Required
 	@Column("Int")
-	totalRemainingRewards: Int
+	stakingTokens: Int
 
 	@Required
 	@Column("String")
@@ -237,11 +232,9 @@ export class Campaign extends AbstractEntity  {
 
 interface PositionConstructorInput {
   id: String;
-  identity: String;
   stakingTokens: Int;
+  stakingToken: String;
   lastAccrualTime: Int;
-  rewardAssetId: String;
-  rewardsAccrued: Int;
 }
 @Entity("Position")
 export class Position extends AbstractEntity  {
@@ -251,24 +244,16 @@ export class Position extends AbstractEntity  {
 	id: String
 
 	@Required
-	@Column("String")
-	identity: String
-
-	@Required
 	@Column("Int")
 	stakingTokens: Int
 
 	@Required
+	@Column("String")
+	stakingToken: String
+
+	@Required
 	@Column("Int")
 	lastAccrualTime: Int
-
-	@Required
-	@Column("String")
-	rewardAssetId: String
-
-	@Required
-	@Column("Int")
-	rewardsAccrued: Int
   constructor(data: PositionConstructorInput) {super()}
   
 }
@@ -347,23 +332,20 @@ type Campaign @entity {
   endTime: Int!
   lastAccrualTime: Int!
   rewardAssetId: String!
-  # rewardRate: Int!
-  rewardsAccruedPerStakingToken: Int!
+  # TODO: Rewards
   stakingToken: String!
-  totalRemainingRewards: Int!
-  # totalPendingRewards: Int!
-  # apr: Float!
+  stakingTokens: Int!
   owner: String!
 }
 
 type Position @entity {
   id: String!
-  identity: String!
+  # Why do we care who owns this?
+  # identity: String!
   stakingTokens: Int!
+  stakingToken: String!
   lastAccrualTime: Int!
-  rewardAssetId: String!
-  rewardsAccrued: Int!
-  # pendingRewardsTotal: Int!
+  # TODO: Rewards
 }
 
 type User @entity {

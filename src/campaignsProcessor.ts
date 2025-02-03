@@ -11,6 +11,14 @@ const campaignAcrueRewards = async (
   campaign: Campaign,
   ctx: FuelContractContext<MiraFarmer>
 ) => {
+  // TODO: rewards
+};
+
+const positionAcrueRewards = async (
+  position: Position,
+  ctx: FuelContractContext<MiraFarmer>
+) => {
+  // TODO: rewards
 };
 
 
@@ -29,12 +37,11 @@ processor.onLogNewCampaignEvent(async (event, ctx) => {
       id: event.data.campaign_id.toString(),
       lastAccrualTime: 0,
       stakingToken: event.data.staking_token.bits,
+      stakingTokens: 0,
       startTime: event.data.start_time.toNumber(),
       endTime: event.data.end_time.toNumber(),
       rewardAssetId: event.data.reward_asset.bits,
-      rewardsAccruedPerStakingToken: 0,
-      totalRemainingRewards: 0,
-      // rewardRate: event.data.reward_rate.toNumber(),
+      // TODO: rewards
       owner: event.data.owner.Address?.bits || event.data.owner.ContractId?.bits || "",
     });
     await ctx.store.upsert(campaign);
@@ -49,20 +56,16 @@ processor.onLogNewPositionEvent(async (event, ctx) => {
     });
     const position = new Position({
       id: event.data.position_id.toString(),
-      identity: event.data.owner.Address?.bits ||
-        event.data.owner.ContractId?.bits || "",
+      // Why do we care who owns this?
+      // identity: event.data.owner.Address?.bits ||
+      //   event.data.owner.ContractId?.bits || "",
+      stakingToken: event.data.asset_id.bits,
       stakingTokens: 0,
       lastAccrualTime: 0,
-      rewardAssetId: event.data.asset_id.bits,
-      rewardsAccrued: 0,
-      // pendingRewardsTotal: 0,
+      // TODO: Rewards
     });
+
     await ctx.store.upsert(position);
-
-    
-    // how know what campaign????
-    // campaignAcrueRewards
-
 
   }
 });
@@ -80,29 +83,43 @@ processor.onLogPositionDepositEvent(async (event, ctx) => {
     // We do not create the position if it does not already exist since the smart contract should revert in this case
     // Should revert if the asset is not the staking asset...
     let position = await ctx.store.get(Position, event.data.position_id.toString());
-    if(position) {
-      position.stakingTokens += amount;
-      await ctx.store.upsert(position);
+    if (!position) {
+      // log("Position not found", event.data.position_id.toString());
+      return;
     }
-    // event.data.asset
-    // event.data.amount
+    // TODO: How get campaign??
+    // campaignAcrueRewards(campaign, ctx);
+    positionAcrueRewards(position, ctx)
+    position.stakingTokens += amount;
+    await ctx.store.upsert(position);
+
   }
 });
 
-// // withdraw_assets
-// processor.onLogPositionWithdrawEvent(async (event, ctx) => {
-//     if (ctx.transaction?.status === "success") {
-//         ctx.eventLogger.emit("PositionWithdraw", {
-//             positionId: event.data.position_id,
-//             amount: event.data.amount.toNumber(),
-//         });
-//         // We do not create the position if it does not already exist since the smart contract should revert in this case
-//         // Should revert if the asset is not the staking asset...
-//         let position = await ctx.store.get(Position, event.data.position_id.toString());
-//         // event.data.asset
-//         // event.data.amount
-//     }
-// });
+// withdraw_assets
+processor.onLogPositionWithdrawEvent(async (event, ctx) => {
+  if (ctx.transaction?.status === "success") {
+    const positionId = event.data.position_id;
+    const amount = event.data.amount.toNumber();
+    ctx.eventLogger.emit("PositionWithdraw", {
+      positionId: positionId,
+      amount: amount,
+    });
+    // We do not create the position if it does not already exist since the smart contract should revert in this case
+    // Should revert if the asset is not the staking asset...
+    let position = await ctx.store.get(Position, positionId.toString());
+    if (!position) {
+      // log("Position not found", event.data.position_id.toString());
+      return;
+    }
+    // TODO: How get campaign??
+    // campaignAcrueRewards(campaign, ctx);
+    positionAcrueRewards(position, ctx);
+    position.stakingTokens -= amount;
+    await ctx.store.upsert(position);
+
+  }
+});
 
 // // claim_rewards
 // processor.onLogClaimRewardsEvent(async (event, ctx) => {
@@ -132,29 +149,71 @@ processor.onLogCampaignFundedEvent(async (event, ctx) => {
       // log("Campaign not found", event.data.campaign_id.toString());
       return;
     }
-    campaign.totalRemainingRewards += event.data.amount.toNumber();
-    
     campaignAcrueRewards(campaign, ctx);
+
+    // TODO: Rewards
+    // campaign.??? += event.data.amount.toNumber();
     
+    await ctx.store.upsert(campaign);
+
   }
 });
 
 processor.onLogCampaignExtendedEvent(async (event, ctx) => {
   if (ctx.transaction?.status === "success") {
+    const endTime = event.data.new_end_time.toNumber();
     ctx.eventLogger.emit("CampaignExtended", {
       campaignId: event.data.campaign_id,
-      endTime: event.data.new_end_time.toNumber(),
+      endTime: endTime,
     });
-    // The new rate just be included in the event raised by the contract
+    let campaign = await ctx.store.get(Campaign, event.data.campaign_id.toString());
+    if (!campaign) {
+      // log("Campaign not found", event.data.campaign_id.toString());
+      return;
+    }
+
+    campaignAcrueRewards(campaign, ctx);
+    campaign.endTime = endTime;
+    
+    // TODO: Rewards
+
+    await ctx.store.upsert(campaign);
   }
 });
 
 
-processor.onLogCampaignExitedEvent(async (event, ctx) => {
+// processor.onLogCampaignExitedEvent(async (event, ctx) => {
 
-});
+// });
 
 // join_campaign
 processor.onLogCampaignJoinedEvent(async (event, ctx) => {
+  if (ctx.transaction?.status === "success") {
+    ctx.eventLogger.emit("JoinCampaign", {
+      positionId: event.data.position_id,
+      campaignId: event.data.campaign_id,
+    });
+    let position = await ctx.store.get(Position, event.data.position_id.toString());
+    if (!position) {
+      // log("Position not found", event.data.position_id.toString());
+      return;
+    }
+    let campaign = await ctx.store.get(Campaign, event.data.campaign_id.toString());
+    if (!campaign) {
+      // log("Campaign not found", event.data.campaign_id.toString());
+      return;
+    }
+
+    campaignAcrueRewards(campaign, ctx);
+    positionAcrueRewards(position, ctx);
+
+    // TODO: how get time?
+    position.lastAccrualTime = 0;
+
+    campaign.stakingTokens += event.data.amount.toNumber();
+
+    await ctx.store.upsert(position);
+    await ctx.store.upsert(campaign);
+  }
 
 });
