@@ -1,5 +1,5 @@
 import { FuelContractContext } from "@sentio/sdk/fuel";
-import { Pool, PoolSnapshot } from "./schema/store.js";
+import { Campaign, Pool, PoolSnapshot, Position } from "./schema/store.js";
 import { Amm } from "./types/fuel/Amm.js";
 import { getLPAssetId, PoolId, poolIdToStr } from "./utils.js";
 
@@ -10,15 +10,19 @@ export async function newPool(poolId: PoolId, ctx: FuelContractContext<Amm>) {
     asset1: poolId[1].bits,
     isStable: poolId[2],
     lpToken: getLPAssetId(poolId),
-
+    lpTokenSupplyDecimal: 0,
     lpTokenSupply: 0n,
     reserve0: 0n,
     reserve1: 0n,
-
+    reserve0Decimal: 0,
+    reserve1Decimal: 0,
     volumeAsset0: 0n,
     volumeAsset1: 0n,
+    volumeAsset0Decimal: 0,
+    volumeAsset1Decimal: 0,
+    mostRecentSnapshot: 0
   });
-  ctx.store.upsert(pool);
+  await ctx.store.upsert(pool);
 }
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -33,18 +37,23 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
   if (pool.mostRecentSnapshot == 0) {
     const snapshot = new PoolSnapshot({
       id: currentSnapshotId,
-      pool: Promise.resolve(pool),
+      poolId: pool.id,
       timestamp: currentSnapshotTimestamp,
 
       transactions: 0,
 
       reserve0: pool.reserve0,
       reserve1: pool.reserve1,
+      reserve0Decimal: pool.reserve0Decimal,
+      reserve1Decimal: pool.reserve1Decimal,
 
-      lpTokenSupply: 0n,
-
+      lpTokenSupply: pool.lpTokenSupply,
+      lpTokenSupplyDecimal: pool.lpTokenSupplyDecimal,
       volumeAsset0: 0n,
       volumeAsset1: 0n,
+      volumeAsset0Decimal: pool.volumeAsset0Decimal,
+      volumeAsset1Decimal: pool.volumeAsset1Decimal,
+
     });
 
     pool.mostRecentSnapshot = currentSnapshotTimestamp;
@@ -63,7 +72,7 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
       const snapshotId = `${pool.id}-${timestamp}`;
       snapshot = new PoolSnapshot({
         id: snapshotId,
-        pool: Promise.resolve(pool),
+        poolId: pool.id,
         timestamp: timestamp,
 
         transactions: 0,
@@ -74,9 +83,11 @@ export async function getPoolSnapshot(pool: Pool, time: Date, ctx: FuelContractC
         reserve1Decimal: pool.reserve1Decimal,
 
         lpTokenSupply: pool.lpTokenSupply,
-
+        lpTokenSupplyDecimal: pool.lpTokenSupplyDecimal,
         volumeAsset0: 0n,
         volumeAsset1: 0n,
+        volumeAsset0Decimal: pool.volumeAsset0Decimal,
+        volumeAsset1Decimal: pool.volumeAsset1Decimal,
       });
       await ctx.store.upsert(snapshot);
     }

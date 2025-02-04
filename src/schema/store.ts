@@ -12,6 +12,25 @@ import { DatabaseSchema } from '@sentio/sdk'
 
 
 
+
+interface PoolConstructorInput {
+  id: ID;
+  asset0: String;
+  asset1: String;
+  isStable: Boolean;
+  lpToken: String;
+  lpTokenSupply: BigInt;
+  lpTokenSupplyDecimal: Float;
+  reserve0: BigInt;
+  reserve1: BigInt;
+  reserve0Decimal: Float;
+  reserve1Decimal: Float;
+  volumeAsset0: BigInt;
+  volumeAsset1: BigInt;
+  volumeAsset0Decimal: Float;
+  volumeAsset1Decimal: Float;
+  mostRecentSnapshot: Int;
+}
 @Entity("Pool")
 export class Pool extends AbstractEntity  {
 
@@ -78,9 +97,27 @@ export class Pool extends AbstractEntity  {
 	@Required
 	@Column("Int")
 	mostRecentSnapshot: Int
-  constructor(data: Partial<Pool>) {super()}
+  constructor(data: PoolConstructorInput) {super()}
+  
 }
 
+
+interface PoolSnapshotConstructorInput {
+  id: ID;
+  poolId: ID;
+  timestamp: Int;
+  lpTokenSupply: BigInt;
+  lpTokenSupplyDecimal: Float;
+  transactions: Int;
+  reserve0: BigInt;
+  reserve1: BigInt;
+  reserve0Decimal: Float;
+  reserve1Decimal: Float;
+  volumeAsset0: BigInt;
+  volumeAsset1: BigInt;
+  volumeAsset0Decimal: Float;
+  volumeAsset1Decimal: Float;
+}
 @Entity("PoolSnapshot")
 export class PoolSnapshot extends AbstractEntity  {
 
@@ -89,10 +126,8 @@ export class PoolSnapshot extends AbstractEntity  {
 	id: ID
 
 	@Required
-	@One("Pool")
-	pool: Promise<Pool>
-
-	poolID: ID
+	@Column("ID")
+	poolId: ID
 
 	@Required
 	@Column("Int")
@@ -141,7 +176,110 @@ export class PoolSnapshot extends AbstractEntity  {
 	@Required
 	@Column("Float")
 	volumeAsset1Decimal: Float
-  constructor(data: Partial<PoolSnapshot>) {super()}
+  constructor(data: PoolSnapshotConstructorInput) {super()}
+  
+}
+
+
+interface CampaignConstructorInput {
+  id: String;
+  startTime: Int;
+  endTime: Int;
+  lastAccrualTime: Int;
+  rewardAssetId: String;
+  stakingToken: String;
+  stakingTokens: Int;
+  owner: String;
+}
+@Entity("Campaign")
+export class Campaign extends AbstractEntity  {
+
+	@Required
+	@Column("String")
+	id: String
+
+	@Required
+	@Column("Int")
+	startTime: Int
+
+	@Required
+	@Column("Int")
+	endTime: Int
+
+	@Required
+	@Column("Int")
+	lastAccrualTime: Int
+
+	@Required
+	@Column("String")
+	rewardAssetId: String
+
+	@Required
+	@Column("String")
+	stakingToken: String
+
+	@Required
+	@Column("Int")
+	stakingTokens: Int
+
+	@Required
+	@Column("String")
+	owner: String
+  constructor(data: CampaignConstructorInput) {super()}
+  
+}
+
+
+interface PositionConstructorInput {
+  id: String;
+  stakingTokens: Int;
+  stakingToken: String;
+  lastAccrualTime: Int;
+}
+@Entity("Position")
+export class Position extends AbstractEntity  {
+
+	@Required
+	@Column("String")
+	id: String
+
+	@Required
+	@Column("Int")
+	stakingTokens: Int
+
+	@Required
+	@Column("String")
+	stakingToken: String
+
+	@Required
+	@Column("Int")
+	lastAccrualTime: Int
+  constructor(data: PositionConstructorInput) {super()}
+  
+}
+
+
+interface UserConstructorInput {
+  id: String;
+  totalPendingRewards: Int;
+  totalClaimedRewards: Int;
+}
+@Entity("User")
+export class User extends AbstractEntity  {
+
+	@Required
+	@Column("String")
+	id: String
+
+	@Required
+	@Column("Int")
+	totalPendingRewards: Int
+
+	@Required
+	@Column("Int")
+	totalClaimedRewards: Int
+  constructor(data: UserConstructorInput) {super()}
+  
 }
 
 
@@ -170,7 +308,7 @@ const source = `type Pool @entity {
 
 type PoolSnapshot @entity {
   id: ID!
-  pool: Pool!
+  poolId: ID!
   timestamp: Int!
   lpTokenSupply: BigInt!
   lpTokenSupplyDecimal: Float!
@@ -187,11 +325,42 @@ type PoolSnapshot @entity {
   volumeAsset0Decimal: Float!
   volumeAsset1Decimal: Float!
 }
+
+type Campaign @entity {
+  id: String!
+  startTime: Int!
+  endTime: Int!
+  lastAccrualTime: Int!
+  rewardAssetId: String!
+  # TODO: Rewards
+  stakingToken: String!
+  stakingTokens: Int!
+  owner: String!
+}
+
+type Position @entity {
+  id: String!
+  # Why do we care who owns this?
+  # identity: String!
+  stakingTokens: Int!
+  stakingToken: String!
+  lastAccrualTime: Int!
+  # TODO: Rewards
+}
+
+type User @entity {
+  id: String!
+  totalPendingRewards: Int!
+  totalClaimedRewards: Int!
+}
 `
 DatabaseSchema.register({
   source,
   entities: {
     "Pool": Pool,
-		"PoolSnapshot": PoolSnapshot
+		"PoolSnapshot": PoolSnapshot,
+		"Campaign": Campaign,
+		"Position": Position,
+		"User": User
   }
 })
